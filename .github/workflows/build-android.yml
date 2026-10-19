@@ -34,7 +34,7 @@ jobs:
           python3 - <<'PY'
           import re,base64,pathlib
           p=pathlib.Path('FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html')
-          m=re.search(r'<img\\s+src="data:image/jpeg;base64,([^"]+)',p.read_text())
+          m=re.search(r'<img\s+src="data:image/jpeg;base64,([^"]+)',p.read_text())
           if not m: raise SystemExit('Approved game artwork missing')
           pathlib.Path('art.jpg').write_bytes(base64.b64decode(m.group(1)))
           PY
