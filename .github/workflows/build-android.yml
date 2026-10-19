@@ -1,4 +1,5 @@
 name: Build Fidget Racing Android
+# Approved faster-AI build; yellow #14 icon from embedded artwork
 on:
   workflow_dispatch:
   push:
