@@ -31,9 +31,15 @@ jobs:
       - name: Build debug APK and unsigned release bundle
         working-directory: android-project
         run: gradle --no-daemon assembleDebug bundleRelease
+      - name: Verify Android download files
+        run: |
+          find android-project/app/build/outputs -type f
+          test -n "$(find android-project/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-Android-builds
+          name: Fidget-Racing-Android-APK
+          if-no-files-found: error
+          retention-days: 30
           path: |
             android-project/app/build/outputs/apk/debug/*.apk
             android-project/app/build/outputs/bundle/release/*.aab
