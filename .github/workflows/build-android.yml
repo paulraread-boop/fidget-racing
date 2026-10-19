@@ -2,12 +2,18 @@ name: Build Fidget Racing Android
 # Approved faster-AI build; yellow #14 icon from embedded artwork
 on:
   workflow_dispatch:
+    inputs:
+      game_file:
+        description: 'Approved game HTML to package (must exist in repository root)'
+        required: true
+        default: 'Fidget_Racing_APK_Inspection_Preview.html'
+        type: string
   push:
     paths:
       - 'FIDGET_RACING_APPROVED_ANDROID_SOURCE*.zip'
+      - 'Fidget_Racing_APK_Inspection_Preview.html'
       - 'FIDGET_RACING_RESTORED_QUICK_RACE_MENU*.html'
       - 'FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html'
-      - '.github/workflows/build-android.yml'
       - 'android_menu_repair.py'
 jobs:
   android:
@@ -27,10 +33,13 @@ jobs:
         run: |
           mkdir -p android-project
           unzip -q 'FIDGET_RACING_APPROVED_ANDROID_SOURCE-1.zip' -d android-project
-      - name: Include latest approved playable game
+      - name: Include approved Build 18 playable game
+        env:
+          GAME_FILE: ${{ inputs.game_file || 'Fidget_Racing_APK_Inspection_Preview.html' }}
         run: |
-          test -s FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html
-          cp FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html android-project/app/src/main/assets/index.html
+          test -f "$GAME_FILE" || { echo "ERROR: Approved preview $GAME_FILE is not in the repository. Upload it before running this workflow."; exit 1; }
+          test -s "$GAME_FILE" || { echo "ERROR: Approved preview is empty"; exit 1; }
+          cp "$GAME_FILE" android-project/app/src/main/assets/index.html
       - name: Repair mobile menu and feature buttons
         run: python3 android_menu_repair.py
       - name: Install approved yellow car app icon
@@ -38,7 +47,7 @@ jobs:
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           import re,base64,pathlib
-          p=pathlib.Path('FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html')
+          p=pathlib.Path('android-project/app/src/main/assets/index.html')
           m=re.search(r'<img\s+src="data:image/jpeg;base64,([^"]+)',p.read_text())
           if not m: raise SystemExit('Approved game artwork missing')
           pathlib.Path('art.jpg').write_bytes(base64.b64decode(m.group(1)))
