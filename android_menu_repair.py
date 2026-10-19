@@ -4,8 +4,8 @@ s=p.read_text(encoding="utf-8")
 patch=r"""
 <style id="fidget-menu-action-repair">
 #gameMenuItems:not(.menu-open){display:none!important;pointer-events:none!important}
-#gameMenuItems.menu-open{display:grid!important;position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 52px)!important;right:8px!important;left:auto!important;bottom:auto!important;width:min(290px,calc(100vw - 16px))!important;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 65px)!important;overflow-y:auto!important;z-index:1001!important}
-#floatingMenuToggle{position:fixed!important;right:8px!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;left:auto!important;z-index:1002!important}
+#gameMenuItems.menu-open{display:grid!important;position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 52px)!important;right:calc(58px + env(safe-area-inset-right,0px))!important;left:auto!important;bottom:auto!important;width:min(290px,calc(100vw - 80px))!important;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 65px)!important;overflow-y:auto!important;z-index:1001!important}
+#floatingMenuToggle{position:fixed!important;right:calc(58px + env(safe-area-inset-right,0px))!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;left:auto!important;z-index:1002!important}
 #gameMenuItems button{pointer-events:auto!important;touch-action:manipulation!important}
 body:has(#customCarPanel:not(.hidden)) #gameMenuItems,
 body:has(#teamPanel:not(.hidden)) #gameMenuItems,
