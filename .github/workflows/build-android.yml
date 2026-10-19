@@ -5,6 +5,7 @@ on:
     paths:
       - 'FIDGET_RACING_APPROVED_ANDROID_SOURCE*.zip'
       - 'FIDGET_RACING_RESTORED_QUICK_RACE_MENU*.html'
+      - 'FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html'
       - '.github/workflows/build-android.yml'
 jobs:
   android:
@@ -26,8 +27,30 @@ jobs:
           unzip -q 'FIDGET_RACING_APPROVED_ANDROID_SOURCE-1.zip' -d android-project
       - name: Include latest approved playable game
         run: |
-          test -s FIDGET_RACING_RESTORED_QUICK_RACE_MENU-2.html
-          cp FIDGET_RACING_RESTORED_QUICK_RACE_MENU-2.html android-project/app/src/main/assets/index.html
+          test -s FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html
+          cp FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html android-project/app/src/main/assets/index.html
+      - name: Install approved yellow car app icon
+        run: |
+          python3 - <<'PY'
+          import re,base64,pathlib
+          p=pathlib.Path('FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html')
+          m=re.search(r'<img\\s+src="data:image/jpeg;base64,([^"]+)',p.read_text())
+          if not m: raise SystemExit('Approved game artwork missing')
+          pathlib.Path('art.jpg').write_bytes(base64.b64decode(m.group(1)))
+          PY
+          for item in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            density="${item%%:*}"; size="${item##*:}"
+            mkdir -p "android-project/app/src/main/res/mipmap-${density}"
+            convert art.jpg -resize "${size}x${size}!" "android-project/app/src/main/res/mipmap-${density}/ic_launcher.png"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-project/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          if 'android:icon=' not in s:
+            s=s.replace('<application','<application android:icon="@mipmap/ic_launcher"',1)
+          p.write_text(s)
+          PY
       - name: Build debug APK and unsigned release bundle
         working-directory: android-project
         run: gradle --no-daemon assembleDebug bundleRelease
