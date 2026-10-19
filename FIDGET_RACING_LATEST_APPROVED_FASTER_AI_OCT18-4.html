@@ -211,7 +211,7 @@ function reset(){redPad=-1;tripleTime=0;boostUses=0;boostUsesLap=0;release();car
 const aiSlots=cars.filter(c=>c.i!==playerSlot);
 for(let i=aiSlots.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[aiSlots[i],aiSlots[j]]=[aiSlots[j],aiSlots[i]];}
 const equalCount=10;
-aiSlots.forEach((c,i)=>{c.aiUpgradeGap=0;c.skill=1;c.aiBalance=(i<10?1.04+Math.random()*.0075:1.03+Math.random()*.0075);});
+aiSlots.forEach((c,i)=>{c.aiUpgradeGap=0;c.skill=1;c.aiBalance=(i<10?1.035+Math.random()*.0075:1.025+Math.random()*.0075);});
 elapsed=0;boost=1;flash=0;redCarFlash=0;padFlash=0;manualBoostTime=0;gamepadBoostHeld=false;boostLap=0;rank=1;cam={x:1600,y:1100};}
 function resize(){const r=canvas.getBoundingClientRect();W=canvas.clientWidth||r.width;H=canvas.clientHeight||r.height;const d=Math.min(devicePixelRatio||1,2);canvas.width=W*d;canvas.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
 new ResizeObserver(resize).observe(canvas);
@@ -441,7 +441,7 @@ const podiumStep=step;step=function(dt){podiumStep(dt);updatePodium();};
 
 let quittingRoom=false;
 function returnToMenu(){spectatorMode=false;document.body.classList.remove('spectating');$('spectate').textContent='Spectate 20 AI';release();netRole='solo';netPlayers=[];netInputs={};netTarget=null;playerSlot=9;prepareSession(false,activeTrack,[]);reset();state='ready';overview=false;$('cameraMode').style.background=cameraDrone?'#ffb454':'#62f5ff';$('view').textContent='Full track';$('pause').textContent='Ⅱ';for(const id of ['overlay','networkPanel','resultsPanel','livePodium'])$(id).classList.add('hidden');$('raceSetup').classList.remove('hidden');updateRoom();updateUI();}
-function quitRace(){if(window.Android&&typeof window.Android.exitApp==='function'){window.Android.exitApp();return;}const connected=netRole==='host'||netRole==='client'||netRole==='disconnected';quittingRoom=connected;if(connected)nativeRace('leave');returnToMenu();}
+function quitRace(){const connected=netRole==='host'||netRole==='client';quittingRoom=connected;if(connected)nativeRace('leave');release();returnToMenu();if(window.Android&&typeof window.Android.exitApp==='function'){window.Android.exitApp();}}
 $('quit').onclick=quitRace;
 // Android shell must implement Android.exitApp() to close its Activity.
 
