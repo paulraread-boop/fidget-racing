@@ -5,7 +5,7 @@ on:
     paths:
       - 'FIDGET_RACING_APPROVED_ANDROID_SOURCE*.zip'
       - 'FIDGET_RACING_RESTORED_QUICK_RACE_MENU*.html'
-      - 'FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html'
+      - 'FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18.html'
       - '.github/workflows/build-android.yml'
 jobs:
   android:
@@ -27,14 +27,14 @@ jobs:
           unzip -q 'FIDGET_RACING_APPROVED_ANDROID_SOURCE-1.zip' -d android-project
       - name: Include latest approved playable game
         run: |
-          test -s FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html
-          cp FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html android-project/app/src/main/assets/index.html
+          test -s FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18.html
+          cp FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18.html android-project/app/src/main/assets/index.html
       - name: Install approved yellow car app icon
         run: |
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           import re,base64,pathlib
-          p=pathlib.Path('FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html')
+          p=pathlib.Path('FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18.html')
           m=re.search(r'<img\s+src="data:image/jpeg;base64,([^"]+)',p.read_text())
           if not m: raise SystemExit('Approved game artwork missing')
           pathlib.Path('art.jpg').write_bytes(base64.b64decode(m.group(1)))
