@@ -31,6 +31,7 @@ jobs:
           cp FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html android-project/app/src/main/assets/index.html
       - name: Install approved yellow car app icon
         run: |
+          python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           import re,base64,pathlib
           p=pathlib.Path('FIDGET_RACING_FLOATING_MENU_YELLOW14_FINAL.html')
@@ -41,7 +42,7 @@ jobs:
           for item in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
             density="${item%%:*}"; size="${item##*:}"
             mkdir -p "android-project/app/src/main/res/mipmap-${density}"
-            convert art.jpg -resize "${size}x${size}!" "android-project/app/src/main/res/mipmap-${density}/ic_launcher.png"
+            python3 -c 'from PIL import Image; import sys; Image.open("art.jpg").convert("RGB").resize((int(sys.argv[1]),int(sys.argv[1]))).save(sys.argv[2])' "$size" "android-project/app/src/main/res/mipmap-${density}/ic_launcher.png"
           done
           python3 - <<'PY'
           from pathlib import Path
