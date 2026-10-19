@@ -16,7 +16,19 @@ body:has(#networkPanel:not(.hidden)) #gameMenuItems{display:none!important;point
 #customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{box-sizing:border-box!important;width:min(100%,1000px)!important;max-width:100%!important;max-height:100%!important;height:100%!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:10px 14px 76px!important;margin:auto!important}
 #customCarPanel .network-top,#garagePanel .network-top,#raceSetup .network-top,#teamPanel .network-top,#networkPanel .network-top{position:sticky!important;top:-10px!important;z-index:5!important;background:#142630!important;padding:8px 2px!important}
 #customCarPanel .network-top button,#garagePanel .network-top button,#raceSetup .network-top button{min-width:46px!important;min-height:42px!important;flex-shrink:0!important}
-#fidgetReturnRace{position:fixed!important;right:10px!important;bottom:12px!important;z-index:2005!important;background:#12455b!important;color:#fff!important;border:2px solid #75faff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:800!important;min-height:44px!important;box-shadow:0 4px 20px #000a!important}
+#fidgetReturnRace{position:fixed!important;right:calc(96px + env(safe-area-inset-right,0px))!important;bottom:12px!important;z-index:2005!important;background:#12455b!important;color:#fff!important;border:2px solid #75faff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:800!important;min-height:44px!important;box-shadow:0 4px 20px #000a!important}
+/* Reserve space for Samsung landscape navigation strip, including the X buttons. */
+@media (orientation:landscape){
+ #customCarPanel,#garagePanel,#raceSetup,#teamPanel,#networkPanel{
+   right:calc(90px + env(safe-area-inset-right,0px))!important;
+   padding-right:12px!important;
+ }
+ #customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{
+   max-width:100%!important;
+ }
+ #floatingMenuToggle{right:calc(108px + env(safe-area-inset-right,0px))!important}
+ #gameMenuItems{right:calc(108px + env(safe-area-inset-right,0px))!important}
+}
 #fidgetCreditBalance{font-size:17px!important;color:#7fffe5!important;font-weight:900!important;margin:8px 0!important}
 </style>
 <script id="fidget-menu-action-repair-script">
@@ -94,6 +106,11 @@ function init(){
  refreshCredits();
  if(garage)observer.observe(garage,{attributes:true,attributeFilter:['class']});
  if(garage)garage.addEventListener('click',()=>requestAnimationFrame(refreshCredits));
+ // Make every existing X close its panel, independent of other menu listeners.
+ for(const pair of [['closeCustomCar','customCarPanel'],['closeGarage','garagePanel'],['closeTracks','raceSetup']]){
+   const btn=document.getElementById(pair[0]), panel=document.getElementById(pair[1]);
+   if(btn&&panel)btn.addEventListener('click',()=>{panel.classList.add('hidden');close()});
+ }
  // Reopen only by tapping the compact MENU button.
  close();
  document.addEventListener('visibilitychange',()=>{if(document.hidden)close()});
