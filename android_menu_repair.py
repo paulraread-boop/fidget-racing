@@ -11,6 +11,13 @@ body:has(#customCarPanel:not(.hidden)) #gameMenuItems,
 body:has(#teamPanel:not(.hidden)) #gameMenuItems,
 body:has(#raceSetup:not(.hidden)) #gameMenuItems,
 body:has(#networkPanel:not(.hidden)) #gameMenuItems{display:none!important;pointer-events:none!important}
+/* Keep modal headers and close controls accessible in landscape Android. */
+#customCarPanel,#garagePanel,#raceSetup,#teamPanel,#networkPanel{box-sizing:border-box!important;padding:8px!important;align-items:stretch!important;overflow:hidden!important}
+#customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{box-sizing:border-box!important;width:min(100%,1000px)!important;max-width:100%!important;max-height:100%!important;height:100%!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:10px 14px 76px!important;margin:auto!important}
+#customCarPanel .network-top,#garagePanel .network-top,#raceSetup .network-top,#teamPanel .network-top,#networkPanel .network-top{position:sticky!important;top:-10px!important;z-index:5!important;background:#142630!important;padding:8px 2px!important}
+#customCarPanel .network-top button,#garagePanel .network-top button,#raceSetup .network-top button{min-width:46px!important;min-height:42px!important;flex-shrink:0!important}
+#fidgetReturnRace{position:fixed!important;right:10px!important;bottom:12px!important;z-index:2005!important;background:#12455b!important;color:#fff!important;border:2px solid #75faff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:800!important;min-height:44px!important;box-shadow:0 4px 20px #000a!important}
+#fidgetCreditBalance{font-size:17px!important;color:#7fffe5!important;font-weight:900!important;margin:8px 0!important}
 </style>
 <script id="fidget-menu-action-repair-script">
 (function(){
@@ -61,6 +68,32 @@ function init(){
    const card=garage.querySelector('.network-card');
    if(card&&!document.getElementById('garageBackToMenu'))card.appendChild(back);
  }
+ // Always-accessible way out of every feature panel.
+ const panels=['garagePanel','customCarPanel','raceSetup','teamPanel','networkPanel'];
+ const backRace=document.createElement('button');
+ backRace.id='fidgetReturnRace';backRace.type='button';backRace.textContent='← Back to Race';
+ backRace.addEventListener('click',()=>{
+   for(const id of panels){const p=document.getElementById(id);if(p)p.classList.add('hidden')}
+   close();
+ });
+ document.body.appendChild(backRace);
+ const refreshBack=()=>{if(garage&&!garage.classList.contains('hidden'))refreshCredits();backRace.style.display=panels.some(id=>{const p=document.getElementById(id);return p&&!p.classList.contains('hidden')})?'block':'none'};
+ const observer=new MutationObserver(refreshBack);
+ for(const id of panels){const p=document.getElementById(id);if(p)observer.observe(p,{attributes:true,attributeFilter:['class']})}
+ refreshBack();
+ // Read the existing earned RC balance; do not modify awards or upgrade prices.
+ const credits=document.createElement('div');
+ credits.id='fidgetCreditBalance';
+ const career=document.getElementById('careerInfo');
+ if(career){career.insertAdjacentElement('afterend',credits)}
+ const refreshCredits=()=>{
+   if(!credits.isConnected)return;
+   let amount=0;try{amount=Math.max(0,Number(localStorage.getItem('fidgetCredits')||0)||0)}catch(e){}
+   credits.textContent='Racing Credits (RC): '+Math.floor(amount).toLocaleString();
+ };
+ refreshCredits();
+ if(garage)observer.observe(garage,{attributes:true,attributeFilter:['class']});
+ if(garage)garage.addEventListener('click',()=>requestAnimationFrame(refreshCredits));
  // Reopen only by tapping the compact MENU button.
  close();
  document.addEventListener('visibilitychange',()=>{if(document.hidden)close()});
