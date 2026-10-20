@@ -23,7 +23,23 @@ body:has(#networkPanel:not(.hidden)) #gameMenuItems{display:none!important;point
 #customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{box-sizing:border-box!important;width:min(100%,1000px)!important;max-width:100%!important;max-height:100%!important;height:100%!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:10px 14px 76px!important;margin:auto!important}
 #customCarPanel .network-top,#garagePanel .network-top,#raceSetup .network-top,#teamPanel .network-top,#networkPanel .network-top{position:sticky!important;top:-10px!important;z-index:5!important;background:#142630!important;padding:8px 2px!important}
 #customCarPanel .network-top button,#garagePanel .network-top button,#raceSetup .network-top button,#teamPanel .network-top button,#networkPanel .network-top button{min-width:46px!important;min-height:42px!important;flex-shrink:0!important;position:relative!important;z-index:10!important}
-#fidgetReturnRace{position:fixed!important;right:calc(96px + env(safe-area-inset-right,0px))!important;bottom:12px!important;z-index:2005!important;background:#12455b!important;color:#fff!important;border:2px solid #75faff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:800!important;min-height:44px!important;box-shadow:0 4px 20px #000a!important}
+#fidgetReturnRace{position:fixed!important;right:calc(110px + env(safe-area-inset-right,0px))!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;z-index:2005!important;background:#12455b!important;color:#fff!important;border:2px solid #75faff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:800!important;min-height:44px!important;box-shadow:0 4px 20px #000a!important}
+/* Unified responsive landscape modal layout: controls never overlap. */
+#floatingMenuToggle{visibility:visible!important}
+body:has(#customCarPanel:not(.hidden)) #floatingMenuToggle,
+body:has(#garagePanel:not(.hidden)) #floatingMenuToggle,
+body:has(#raceSetup:not(.hidden)) #floatingMenuToggle,
+body:has(#teamPanel:not(.hidden)) #floatingMenuToggle,
+body:has(#networkPanel:not(.hidden)) #floatingMenuToggle{visibility:hidden!important;pointer-events:none!important}
+#customCarPanel:not(.hidden),#garagePanel:not(.hidden),#raceSetup:not(.hidden),#teamPanel:not(.hidden),#networkPanel:not(.hidden){inset:0 calc(86px + env(safe-area-inset-right,0px)) 0 env(safe-area-inset-left,0px)!important;max-width:none!important;max-height:100dvh!important;display:flex!important;align-items:stretch!important;justify-content:center!important}
+#customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{height:auto!important;max-height:calc(100dvh - 16px)!important;min-height:0!important;overflow:auto!important;scrollbar-gutter:stable!important;padding-bottom:86px!important}
+#customCarPanel .network-top,#garagePanel .network-top,#raceSetup .network-top,#teamPanel .network-top,#networkPanel .network-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding-right:8px!important}
+#customCarPanel .network-top button,#garagePanel .network-top button,#raceSetup .network-top button,#teamPanel .network-top button,#networkPanel .network-top button{margin-left:auto!important;flex:none!important}
+#fidgetReturnRace{max-width:min(260px,40vw)!important;white-space:normal!important}
+@media (max-height:460px) and (orientation:landscape){
+ #customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{padding-bottom:72px!important}
+ #fidgetReturnRace{bottom:8px!important;padding:7px 12px!important;min-height:40px!important;font-size:14px!important}
+}
 /* Reserve space for Samsung landscape navigation strip, including the X buttons. */
 @media (orientation:landscape){
  #customCarPanel,#garagePanel,#raceSetup,#teamPanel,#networkPanel{
