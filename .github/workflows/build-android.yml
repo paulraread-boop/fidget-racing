@@ -11,6 +11,7 @@ on:
   push:
     paths:
       - 'FIDGET_RACING_APPROVED_ANDROID_SOURCE*.zip'
+      - 'FIDGET_RACING_EXIT_FIXED_SOURCE.zip'
       - 'Fidget_Racing_APK_Inspection_Preview.html'
       - 'FIDGET_RACING_RESTORED_QUICK_RACE_MENU*.html'
       - 'FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html'
@@ -33,7 +34,7 @@ jobs:
       - name: Unpack approved project
         run: |
           mkdir -p android-project
-          unzip -q 'FIDGET_RACING_APPROVED_ANDROID_SOURCE-1.zip' -d android-project
+          unzip -q 'FIDGET_RACING_EXIT_FIXED_SOURCE.zip' -d android-project
       - name: Include approved Build 18 playable game
         env:
           GAME_FILE: ${{ inputs.game_file || 'Fidget_Racing_APK_Inspection_Preview.html' }}
