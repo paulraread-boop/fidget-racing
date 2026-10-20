@@ -68,7 +68,7 @@ function init(){
  if(garage){
    const back=document.createElement('button');
    back.type='button';
-   back.textContent='← Back to Menu';
+   back.textContent='← Back to Main Menu';
    back.id='garageBackToMenu';
    back.style.cssText='display:block;width:100%;min-height:44px;margin-top:10px;background:#214b61;color:white;border:2px solid #75faff;border-radius:8px';
    back.addEventListener('click',()=>{
@@ -83,10 +83,12 @@ function init(){
  // Always-accessible way out of every feature panel.
  const panels=['garagePanel','customCarPanel','raceSetup','teamPanel','networkPanel'];
  const backRace=document.createElement('button');
- backRace.id='fidgetReturnRace';backRace.type='button';backRace.textContent='← Back to Race';
+ backRace.id='fidgetReturnRace';backRace.type='button';backRace.textContent='← Back to Main Menu';
  backRace.addEventListener('click',()=>{
    for(const id of panels){const p=document.getElementById(id);if(p)p.classList.add('hidden')}
    close();
+   const quit=document.getElementById('quit');
+   if(quit)quit.click();
  });
  document.body.appendChild(backRace);
  const refreshBack=()=>{backRace.style.display=panels.some(id=>{const p=document.getElementById(id);return p&&!p.classList.contains('hidden')})?'block':'none'};
