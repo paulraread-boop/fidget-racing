@@ -15,6 +15,7 @@ on:
       - 'FIDGET_RACING_RESTORED_QUICK_RACE_MENU*.html'
       - 'FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html'
       - 'android_menu_repair.py'
+      - 'android_background_exit_repair.py'
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -42,6 +43,8 @@ jobs:
           cp "$GAME_FILE" android-project/app/src/main/assets/index.html
       - name: Repair mobile menu and feature buttons
         run: python3 android_menu_repair.py
+      - name: Repair background shutdown and exit lifecycle
+        run: python3 android_background_exit_repair.py
       - name: Install approved yellow car app icon
         run: |
           python3 -m pip install --quiet Pillow
