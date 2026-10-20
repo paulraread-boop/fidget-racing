@@ -67,9 +67,8 @@ function init(){
    closeGarage.addEventListener('click',()=>{
      garage.classList.add('hidden');
      close();
-     document.getElementById('quit')?.click();
      toggle.textContent='☰ MENU';
-     toggle.setAttribute('aria-expanded','true');
+     toggle.setAttribute('aria-expanded','false');
    });
  }
  // A visible garage must not trap the player away from the main menu.
@@ -81,14 +80,13 @@ function init(){
    back.style.cssText='display:block;width:100%;min-height:44px;margin-top:10px;background:#214b61;color:white;border:2px solid #75faff;border-radius:8px';
    back.addEventListener('click',()=>{
      garage.classList.add('hidden');
-     menu.classList.add('menu-open');
-     toggle.textContent='✕ MENU';
-     toggle.setAttribute('aria-expanded','true');
+     close();
+     document.getElementById('quit')?.click();
    });
    const card=garage.querySelector('.network-card');
    if(card&&!document.getElementById('garageBackToMenu'))card.appendChild(back);
  }
- // Always-accessible way out of every feature panel.
+ // Use existing panel close buttons; avoid a second floating back button.
  const panels=['garagePanel','customCarPanel','raceSetup','teamPanel','networkPanel'];
  const backRace=document.createElement('button');
  backRace.id='fidgetReturnRace';backRace.type='button';backRace.textContent='← Back to Main Menu';
@@ -98,8 +96,9 @@ function init(){
    const quit=document.getElementById('quit');
    if(quit)quit.click();
  });
- document.body.appendChild(backRace);
- const refreshBack=()=>{backRace.style.display=panels.some(id=>{const p=document.getElementById(id);return p&&!p.classList.contains('hidden')})?'block':'none'};
+ // Do not append the redundant floating button.
+
+ const refreshBack=()=>{};
  const observer=new MutationObserver(refreshBack);
  for(const id of panels){const p=document.getElementById(id);if(p)observer.observe(p,{attributes:true,attributeFilter:['class']})}
  refreshBack();
@@ -121,7 +120,8 @@ function init(){
    const btn=document.getElementById(pair[0]), panel=document.getElementById(pair[1]);
    if(btn&&panel)btn.addEventListener('click',()=>{panel.classList.add('hidden');close()});
  }
- // Make the floating MENU control a reliable open/close toggle, even after opening Garage.\n toggle.addEventListener('click',()=>{\n   const open=menu.classList.contains('menu-open');\n   if(open)close();\n   else{menu.classList.add('menu-open');toggle.textContent='✕ MENU';toggle.setAttribute('aria-expanded','true')}\n });\n // Reopen only by tapping the compact MENU button.
+ // Existing menu toggle handles opening and closing; avoid duplicate listeners.
+ // Reopen only by tapping the compact MENU button.
  close();
  document.addEventListener('visibilitychange',()=>{if(document.hidden)close()});
 }
