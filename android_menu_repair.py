@@ -1,6 +1,13 @@
 from pathlib import Path
 p=Path("android-project/app/src/main/assets/index.html")
 s=p.read_text(encoding="utf-8")
+anchor="function returnToMenu(){"
+if anchor not in s: raise SystemExit("Home handler missing")
+s=s.replace(anchor,"const fidgetOriginalHome = document.getElementById('overlay').innerHTML;\n"+anchor,1)
+old="$('raceSetup').classList.remove('hidden');updateRoom();updateUI();}"
+new="$('raceSetup').classList.add('hidden');for(const id of ['garagePanel','customCarPanel','teamPanel']){const panel=document.getElementById(id);if(panel)panel.classList.add('hidden')}const floating=document.getElementById('gameMenuItems');if(floating)floating.classList.remove('menu-open');$('overlay').innerHTML=fidgetOriginalHome;$('overlay').classList.remove('hidden');$('quickRace').onclick=()=>playSelected(false,true);$('start').onclick=start;$('watchRace').onclick=startSpectating;updateRoom();updateUI();}"
+if old not in s: raise SystemExit("Expected navigation code missing")
+s=s.replace(old,new,1)
 patch=r"""
 <style id="fidget-menu-action-repair">
 #gameMenuItems:not(.menu-open){display:none!important;pointer-events:none!important}
@@ -59,8 +66,9 @@ function init(){
  if(garage&&closeGarage){
    closeGarage.addEventListener('click',()=>{
      garage.classList.add('hidden');
-     menu.classList.add('menu-open');
-     toggle.textContent='✕ MENU';
+     close();
+     document.getElementById('quit')?.click();
+     toggle.textContent='☰ MENU';
      toggle.setAttribute('aria-expanded','true');
    });
  }
