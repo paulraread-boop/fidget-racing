@@ -1,6 +1,16 @@
 from pathlib import Path
 p=Path("android-project/app/src/main/assets/index.html")
 s=p.read_text(encoding="utf-8")
+from zipfile import ZipFile
+picture_zip=Path("Fidget_Racing_Approved_Picture_Package.zip")
+if not picture_zip.exists():
+    raise SystemExit("Approved picture ZIP missing")
+with ZipFile(picture_zip) as z:
+    picture=z.read("fidget_picture_package/assets/fidget_chat_reference.jpg")
+assets=Path("android-project/app/src/main/assets")
+assets.mkdir(parents=True,exist_ok=True)
+(assets/"fidget_chat_reference.jpg").write_bytes(picture)
+
 if 'id="fidget-new-home"' in s: raise SystemExit("New menu already installed")
 addon=r"""
 <style id="fidget-new-home-style">
@@ -53,5 +63,10 @@ if(typeof oldReturn==='function')window.returnToMenu=function(){oldReturn.apply(
 """
 if '</body>' not in s: raise SystemExit("Game HTML body missing")
 s=s.replace('</body>',addon+'</body>',1)
+s=s.replace('</body>',"""<style id="approved-picture-style">
+#fidget-new-home{background:linear-gradient(#07102155,#071021bb),url('fidget_chat_reference.jpg') center / cover no-repeat!important}
+#fidget-chat-screen{background:linear-gradient(#07102199,#071021bb),url('fidget_chat_reference.jpg') center / cover no-repeat!important}
+.fidget-home-card,.fidget-chat-panel{background:#071021dc!important}
+</style></body>""",1)
 p.write_text(s,encoding="utf-8")
 print("Added five-button menu and chat UI")
