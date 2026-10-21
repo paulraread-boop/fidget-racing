@@ -15,6 +15,7 @@ on:
       - 'Fidget_Racing_APK_Inspection_Preview.html'
       - 'FIDGET_RACING_RESTORED_QUICK_RACE_MENU*.html'
       - 'FIDGET_RACING_LATEST_APPROVED_FASTER_AI_OCT18-4.html'
+      - 'android_new_menu_chat.py'
       - 'android_menu_repair.py'
       - 'android_background_exit_repair.py'
       - 'android_rollover_visual_test.py'
