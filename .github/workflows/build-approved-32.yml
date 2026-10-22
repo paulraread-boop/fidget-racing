@@ -1,0 +1,44 @@
+name: Build Approved Build 32 APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Unpack existing Android project
+        run: |
+          mkdir -p android-project
+          unzip -q FIDGET_RACING_EXIT_FIXED_SOURCE.zip -d android-project
+          test -f android-project/app/build.gradle -o -f android-project/app/build.gradle.kts
+      - name: Install exact approved Build 32 HTML unchanged
+        run: |
+          set -e
+          source_file='Fidget_Racing_Build_32_Garage_Simplified_Chrome-5.html'
+          test -s "$source_file"
+          mkdir -p android-project/app/src/main/assets
+          cp "$source_file" android-project/app/src/main/assets/index.html
+          cmp "$source_file" android-project/app/src/main/assets/index.html
+          sha256sum "$source_file" android-project/app/src/main/assets/index.html
+      - name: Build debug APK
+        working-directory: android-project
+        run: gradle --no-daemon assembleDebug
+      - name: Verify APK exists
+        run: test -n "$(find android-project/app/build/outputs/apk/debug -name '*.apk' -print -quit)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-Build-32-Approved-APK
+          if-no-files-found: error
+          retention-days: 30
+          path: android-project/app/build/outputs/apk/debug/*.apk
