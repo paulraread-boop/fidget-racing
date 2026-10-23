@@ -23,7 +23,7 @@ jobs:
       - name: Install exact approved v60 HTML
         run: |
           set -eu
-          source_file=Fidget_Racing_OFFICIAL_MASTER_v60.html
+          source_file=Fidget_Racing_OFFICIAL_MASTER_v60-3.html
           test -s "$source_file" || { echo "::error::Upload Fidget_Racing_OFFICIAL_MASTER_v60.html to repository root first."; exit 1; }
           mkdir -p android-project/app/src/main/assets
           cp "$source_file" android-project/app/src/main/assets/index.html
