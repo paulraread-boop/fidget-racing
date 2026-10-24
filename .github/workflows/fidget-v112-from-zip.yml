@@ -1,0 +1,39 @@
+name: Fidget Racing v112 APK and AAB
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fidget-v112-from-zip.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract approved v112 project
+        run: |
+          unzip -o "Fidget_Racing_v112_GitHub_Build_Ready-4.zip" -d .
+          test -f app/build.gradle
+          test -f app/src/main/assets/index.html
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build APK and AAB
+        run: gradle --no-daemon :app:assembleDebug :app:bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-v112-Test-APK
+          path: app/build/outputs/apk/debug/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-v112-Unsigned-AAB
+          path: app/build/outputs/bundle/release/*.aab
