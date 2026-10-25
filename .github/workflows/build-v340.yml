@@ -21,8 +21,8 @@ jobs:
         run: |
           if [ ! -f android-v340/app/build.gradle ]; then
             test -f Fidget_V340_Android_Part_1.zip.part
-            test -f Fidget_V340_Android_Part_2.zip.part
-            cat Fidget_V340_Android_Part_1.zip.part Fidget_V340_Android_Part_2.zip.part > "$RUNNER_TEMP/v340.zip"
+            for i in 2 3 4 5; do test -f "Fidget_V340_Android_Part_${i}.zip.part"; done
+            cat Fidget_V340_Android_Part_{1,2,3,4,5}.zip.part > "$RUNNER_TEMP/v340.zip"
             unzip -q "$RUNNER_TEMP/v340.zip"
           fi
       - name: Verify V340 source is present
