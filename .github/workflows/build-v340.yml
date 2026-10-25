@@ -5,6 +5,7 @@ on:
     branches: [build/v340-android]
     paths:
       - 'android-v340/**'
+      - 'Fidget_V340_Android_Part_*.zip.part'
       - '.github/workflows/build-v340.yml'
 jobs:
   android:
@@ -16,6 +17,14 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+      - name: Unpack uploaded V340 Android project
+        run: |
+          if [ ! -f android-v340/app/build.gradle ]; then
+            test -f Fidget_V340_Android_Part_1.zip.part
+            test -f Fidget_V340_Android_Part_2.zip.part
+            cat Fidget_V340_Android_Part_1.zip.part Fidget_V340_Android_Part_2.zip.part > "$RUNNER_TEMP/v340.zip"
+            unzip -q "$RUNNER_TEMP/v340.zip"
+          fi
       - name: Verify V340 source is present
         run: |
           test -f android-v340/app/src/main/assets/index.html || { echo "::error::Upload the V340 Android Studio source into android-v340/ first"; exit 1; }
@@ -38,10 +47,12 @@ jobs:
           STORE_PASSWORD: ${{ secrets.FIDGET_UPLOAD_STORE_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_B64" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$STORE_PASSWORD" ]; then
-            echo "::error::Upload signing secrets required for Play Store AAB are not configured"; exit 1
+            echo "Play Store signing secrets not configured; skipping signed AAB."
           fi
           printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/fidget-upload.jks"
+          echo "KEYSTORE_READY=true" >> "$GITHUB_ENV"
       - name: Build signed release AAB
+        if: ${{ env.KEYSTORE_READY == 'true' }}
         working-directory: android-v340
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/fidget-upload.jks
@@ -64,6 +75,7 @@ jobs:
           EOF
           gradle bundleRelease --no-daemon
       - uses: actions/upload-artifact@v4
+        if: ${{ env.KEYSTORE_READY == 'true' }}
         with:
           name: Fidget-Racing-V340-Signed-Play-AAB
           path: android-v340/app/build/outputs/bundle/release/*.aab
