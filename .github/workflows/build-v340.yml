@@ -48,6 +48,10 @@ jobs:
           import android.app.Activity;
           import android.app.AlertDialog;
           import android.os.Bundle;
+          import android.os.Build;
+          import android.view.WindowInsets;
+          import android.view.View;
+          import android.widget.FrameLayout;
           import android.util.Log;
           import android.webkit.ConsoleMessage;
           import android.webkit.RenderProcessGoneDetail;
@@ -61,7 +65,23 @@ jobs:
               private WebView game;
               private void openGame() {
                   game = new WebView(this);
-                  setContentView(game);
+                  FrameLayout frame = new FrameLayout(this);
+                  frame.addView(game, new FrameLayout.LayoutParams(-1, -1));
+                  setContentView(frame);
+                  if (Build.VERSION.SDK_INT >= 30) {
+                      frame.setOnApplyWindowInsetsListener((view, insets) -> {
+                          android.graphics.Insets bars = insets.getInsets(
+                              WindowInsets.Type.navigationBars() | WindowInsets.Type.displayCutout());
+                          FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) game.getLayoutParams();
+                          lp.leftMargin = bars.left;
+                          lp.topMargin = bars.top;
+                          lp.rightMargin = bars.right;
+                          lp.bottomMargin = bars.bottom;
+                          game.setLayoutParams(lp);
+                          return insets;
+                      });
+                      frame.requestApplyInsets();
+                  }
                   WebSettings s = game.getSettings();
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
