@@ -1,4 +1,5 @@
 name: Build Fidget Racing V393 Android
+# Re-trigger build after latest upload; preserve approved V393 game content
 on:
   workflow_dispatch:
   push:
