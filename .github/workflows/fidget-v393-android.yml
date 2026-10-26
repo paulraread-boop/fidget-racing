@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/fidget-v393-android.yml'
-      - 'fidget-racing-cover.jpg'
+      - 'fidget-racing-cover-1.jpg'
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -137,16 +137,16 @@ jobs:
           EOF
       - name: Install official cover artwork as launcher icon and opening splash
         run: |
-          test -s fidget-racing-cover.jpg || { echo 'Official artwork not uploaded: fidget-racing-cover.jpg'; exit 1; }
+          test -s fidget-racing-cover-1.jpg || { echo 'Official artwork not uploaded: fidget-racing-cover-1.jpg'; exit 1; }
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           from PIL import Image
           from pathlib import Path
-          src=Image.open('fidget-racing-cover.jpg').convert('RGB')
+          src=Image.open('fidget-racing-cover-1.jpg').convert('RGB')
           root=Path('app/src/main')
           assets=root/'assets'
           assets.mkdir(parents=True,exist_ok=True)
-          src.save(assets/'fidget-racing-cover.jpg',quality=94)
+          src.save(assets/'fidget-racing-cover-1.jpg',quality=94)
           for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
               dest=root/'res'/('mipmap-'+density)
               dest.mkdir(parents=True,exist_ok=True)
@@ -156,7 +156,7 @@ jobs:
           manifest.write_text(txt)
           java=root/'java/com/fidgetracing/game/MainActivity.java'
           txt=java.read_text()
-          txt=txt.replace('web.loadUrl("file:///android_asset/index.html");', '''web.loadDataWithBaseURL("file:///android_asset/", "<html><head><meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1\\"></head><body style=\\"margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh\\"><img src=\\"fidget-racing-cover.jpg\\" style=\\"max-width:100%;max-height:100%;object-fit:contain\\"></body></html>", "text/html", "UTF-8", null);
+          txt=txt.replace('web.loadUrl("file:///android_asset/index.html");', '''web.loadDataWithBaseURL("file:///android_asset/", "<html><head><meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1\\"></head><body style=\\"margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh\\"><img src=\\"fidget-racing-cover-1.jpg\\" style=\\"max-width:100%;max-height:100%;object-fit:contain\\"></body></html>", "text/html", "UTF-8", null);
                   web.postDelayed(() -> web.loadUrl("file:///android_asset/index.html"), 2500);''')
           java.write_text(txt)
           PY
