@@ -39,7 +39,7 @@ jobs:
           test -f android-v340/app/build.gradle
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.9'
       - name: Build installable debug APK
         working-directory: android-v340
         run: gradle assembleDebug --no-daemon
