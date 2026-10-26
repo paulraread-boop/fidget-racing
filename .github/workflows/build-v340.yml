@@ -80,10 +80,15 @@ jobs:
           if '<application' not in xml:
               raise SystemExit('Android manifest application element missing')
           import re
-          xml, n = re.subn(r'(<application\\b)([^>]*?)(>)', lambda m: m.group(1) + re.sub(r'\\s+android:icon="[^"]*"', '', m.group(2)) + ' android:icon="@drawable/fidget_launcher"' + m.group(3), xml, count=1)
-          if n != 1:
-              raise SystemExit('Could not update launcher icon')
-          manifest.write_text(xml, encoding='utf-8')
+          import xml.etree.ElementTree as ET
+          ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          app = root.find('application')
+          if app is None:
+              raise SystemExit('Android application element missing')
+          app.set('{http://schemas.android.com/apk/res/android}icon', '@drawable/fidget_launcher')
+          tree.write(manifest, encoding='unicode', xml_declaration=True)
           print('Steering toggle isolated; approved artwork set as Android launcher icon')
           PY
       - name: Add Android WebView crash recovery and diagnostic logging
