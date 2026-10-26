@@ -16,7 +16,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      # GitHub's Ubuntu runner already includes Android SDK command-line tools.
+      # Avoid setup-android's failing SDK license/update operation.
+      - name: Locate preinstalled Android SDK
+        run: |
+          test -d "$ANDROID_HOME" || { echo "::error::Android SDK missing on runner"; exit 1; }
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "Using Android SDK: $ANDROID_HOME"
       - name: Unpack uploaded V340 Android project
         run: |
           if [ ! -f android-v340/app/build.gradle ]; then
