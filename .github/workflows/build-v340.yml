@@ -140,6 +140,12 @@ jobs:
           if source.count(old_return) != 1:
               raise SystemExit('Replay return control not found; refusing unrelated changes')
           source = source.replace(old_return, new_return, 1)
+          # Raise only slower and middle AI tiers by 1%; leave fastest unchanged.
+          old_tiers = '[0.9494,0.952,0.965][c.aiTuningTier]'
+          new_tiers = '[0.958894,0.96152,0.965][c.aiTuningTier]'
+          if source.count(old_tiers) != 1:
+              raise SystemExit('AI tuning tiers not found uniquely; refusing unrelated changes')
+          source = source.replace(old_tiers, new_tiers, 1)
           # V340 replay: compact controls, no live racing touch buttons, one replay entry.
           replay_style = """
           <style id="v340-replay-cleanup">
