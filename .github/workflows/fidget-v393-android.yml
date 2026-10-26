@@ -35,7 +35,22 @@ jobs:
           parts.sort(key=order)
           if [order(p) for p in parts]!=[1,2,3,4,5]:
               sys.exit('Parts 1-5 are not all present')
-          raw=b''.join(p.read_bytes() for p in parts)
+          import io,zipfile
+          payloads=[]
+          for p in parts:
+              b=p.read_bytes()
+              if zipfile.is_zipfile(io.BytesIO(b)):
+                  with zipfile.ZipFile(io.BytesIO(b)) as z:
+                      candidates=[n for n in z.namelist() if not n.endswith('/') and not n.startswith('__MACOSX/')]
+                      if len(candidates)!=1: sys.exit('ZIP part must contain exactly one payload: '+p.name)
+                      b=z.read(candidates[0])
+              payloads.append(b)
+          raw=b''.join(payloads)
+          if raw.startswith(b'PK') and zipfile.is_zipfile(io.BytesIO(raw)):
+              with zipfile.ZipFile(io.BytesIO(raw)) as z:
+                  candidates=[n for n in z.namelist() if n.lower().endswith('.html')]
+                  if len(candidates)!=1: sys.exit('Combined ZIP must contain one HTML file')
+                  raw=z.read(candidates[0])
           try: html=raw.decode('utf-8')
           except UnicodeDecodeError: sys.exit('Combined files are not UTF-8 HTML')
           if '<html' not in html.lower() or '</html>' not in html.lower():
