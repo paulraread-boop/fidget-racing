@@ -40,6 +40,52 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Apply steering toggle and approved Fidget Racing launcher artwork
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import base64
+          html = Path('android-v340/app/src/main/assets/index.html')
+          source = html.read_text(encoding='utf-8')
+          old = "$('side').onclick=()=>{release();rightControls=!rightControls;applySide();"
+          new = "$('side').onclick=(event)=>{event.preventDefault();event.stopPropagation();release();rightControls=!rightControls;applySide();"
+          if old not in source:
+              raise SystemExit('Steering handler not found; refusing unrelated game edits')
+          html.write_text(source.replace(old, new, 1), encoding='utf-8')
+          class ApprovedArt(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.in_art = False
+                  self.src = None
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if attrs.get('id') == 'approved-yellow14-icon-source':
+                      self.in_art = True
+                  elif self.in_art and tag == 'img':
+                      self.src = attrs.get('src')
+              def handle_endtag(self, tag):
+                  if tag == 'div' and self.in_art:
+                      self.in_art = False
+          art = ApprovedArt()
+          art.feed(source)
+          if not art.src or not art.src.startswith('data:image/jpeg;base64,'):
+              raise SystemExit('Approved yellow #14 artwork not found')
+          image = base64.b64decode(art.src.split(',', 1)[1], validate=True)
+          drawable = Path('android-v340/app/src/main/res/drawable-nodpi')
+          drawable.mkdir(parents=True, exist_ok=True)
+          (drawable / 'fidget_launcher.jpg').write_bytes(image)
+          manifest = Path('android-v340/app/src/main/AndroidManifest.xml')
+          xml = manifest.read_text(encoding='utf-8')
+          if '<application' not in xml:
+              raise SystemExit('Android manifest application element missing')
+          import re
+          xml, n = re.subn(r'(<application\\b)([^>]*?)(>)', lambda m: m.group(1) + re.sub(r'\\s+android:icon="[^"]*"', '', m.group(2)) + ' android:icon="@drawable/fidget_launcher"' + m.group(3), xml, count=1)
+          if n != 1:
+              raise SystemExit('Could not update launcher icon')
+          manifest.write_text(xml, encoding='utf-8')
+          print('Steering toggle isolated; approved artwork set as Android launcher icon')
+          PY
       - name: Add Android WebView crash recovery and diagnostic logging
         run: |
           cat > android-v340/app/src/main/java/com/fidgetracing/game/MainActivity.java <<'JAVA'
