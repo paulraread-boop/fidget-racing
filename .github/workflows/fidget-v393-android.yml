@@ -1,0 +1,121 @@
+name: Build Fidget Racing V393 Android
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fidget-v393-android.yml'
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Assemble V393 HTML from five uploaded parts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,sys
+          parts=sorted(p for p in Path('.').iterdir() if p.is_file() and 'V393' in p.name.upper() and 'PART' in p.name.upper())
+          print('V393 part files:',[p.name for p in parts])
+          if len(parts)!=5:
+              sys.exit('Expected exactly five V393 part files; refusing to build another version.')
+          def order(p):
+              m=re.search(r'(?:part|pt)[_ -]*([1-5])',p.name,re.I)
+              if not m: sys.exit('Cannot determine part number: '+p.name)
+              return int(m.group(1))
+          parts.sort(key=order)
+          if [order(p) for p in parts]!=[1,2,3,4,5]:
+              sys.exit('Parts 1-5 are not all present')
+          raw=b''.join(p.read_bytes() for p in parts)
+          try: html=raw.decode('utf-8')
+          except UnicodeDecodeError: sys.exit('Combined files are not UTF-8 HTML')
+          if '<html' not in html.lower() or '</html>' not in html.lower():
+              sys.exit('Combined parts do not form complete HTML; refusing broken APK')
+          out=Path('app/src/main/assets')
+          out.mkdir(parents=True,exist_ok=True)
+          (out/'index.html').write_text(html,encoding='utf-8')
+          print('Validated HTML bytes:',len(raw))
+          PY
+      - name: Create minimal Android WebView wrapper
+        run: |
+          mkdir -p app/src/main/java/com/fidgetracing/game
+          cat > settings.gradle <<'EOF'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+          rootProject.name = 'FidgetRacing'
+          include ':app'
+          EOF
+          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
+          cat > app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.fidgetracing.game'
+              compileSdk 35
+              defaultConfig {
+                  applicationId 'com.fidgetracing.game'
+                  minSdk 24
+                  targetSdk 28
+                  versionCode 393
+                  versionName '393'
+              }
+          }
+          EOF
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application android:label="Fidget Racing" android:theme="@android:style/Theme.Material.NoActionBar" android:usesCleartextTraffic="true">
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+          cat > app/src/main/java/com/fidgetracing/game/MainActivity.java <<'EOF'
+          package com.fidgetracing.game;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          public class MainActivity extends Activity {
+              WebView web;
+              @Override public void onCreate(Bundle state) {
+                  super.onCreate(state);
+                  web=new WebView(this);
+                  setContentView(web);
+                  WebSettings s=web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setAllowFileAccess(true);
+                  s.setMediaPlaybackRequiresUserGesture(false);
+                  web.setWebViewClient(new WebViewClient());
+                  web.setWebChromeClient(new WebChromeClient());
+                  web.loadUrl("file:///android_asset/index.html");
+              }
+              @Override public void onBackPressed() {
+                  if(web.canGoBack()) web.goBack(); else super.onBackPressed();
+              }
+          }
+          EOF
+      - name: Build debug APK and unsigned AAB
+        run: gradle --no-daemon :app:assembleDebug :app:bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V393-APK-AAB
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
