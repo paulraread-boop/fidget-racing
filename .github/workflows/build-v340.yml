@@ -198,7 +198,7 @@ jobs:
           source = source.replace(old_draw, new_draw, 1)
           # Raise only slower and middle AI tiers by 1%; leave fastest unchanged.
           old_tiers = '[0.9494,0.952,0.965][c.aiTuningTier]'
-          new_tiers = '[0.958894,0.96152,0.965][c.aiTuningTier]'
+          new_tiers = '[0.978072,0.96152,0.969825][c.aiTuningTier]'
           if source.count(old_tiers) != 1:
               raise SystemExit('AI tuning tiers not found uniquely; refusing unrelated changes')
           source = source.replace(old_tiers, new_tiers, 1)
