@@ -134,6 +134,44 @@ jobs:
           if anchor not in source:
               raise SystemExit('Wallet initialization not found')
           source = source.replace(anchor, correction + anchor, 1)
+          # V340 replay: compact controls, no live racing touch buttons, one replay entry.
+          replay_style = """
+          <style id="v340-replay-cleanup">
+          body.v175-replay-view #gameMenuItems,
+          body.v175-replay-view #positionTest,
+          body.v175-replay-view .telemetry,
+          body.v175-replay-view .touch-controls,
+          body.v175-replay-view .touchControls,
+          body.v175-replay-view .race-controls,
+          body.v175-replay-view .controls,
+          body.v175-replay-view .pedals,
+          body.v175-replay-view #gas,
+          body.v175-replay-view #boost,
+          body.v175-replay-view #knob,
+          body.v175-replay-view #board {display:none!important;pointer-events:none!important}
+          body.v175-replay-view #replay162Panel{
+            top:4px!important;right:8px!important;left:auto!important;
+            max-width:min(76vw,540px)!important;width:auto!important;
+            padding:3px 6px!important;gap:3px!important;
+            font-size:10px!important;line-height:1.15!important;
+            background:#07152ed9!important
+          }
+          body.v175-replay-view #replay162Panel button{
+            font-size:10px!important;padding:3px 6px!important;min-height:25px!important
+          }
+          </style>
+          """
+          if '</head>' not in source:
+              raise SystemExit('HTML head missing for replay styles')
+          source = source.replace('</head>', replay_style + '</head>', 1)
+          old_footer = "footer.append(replayButton,statsButton);"
+          if source.count(old_footer)!=1:
+              raise SystemExit('Replay footer location changed; no edit applied')
+          # Keep the replay action with Results heading; remove duplicate footer entry.
+          source = source.replace("buttons.appendChild(menuButton);", "buttons.appendChild(replayButton);buttons.appendChild(menuButton);", 1)
+          source = source.replace(old_footer, "footer.append(statsButton);", 1)
+          # Reopening replay should never stack an old replay panel on top.
+          source = source.replace("function replay162Open(){", "function replay162Open(){document.getElementById('replay162Panel')?.remove();", 1)
           html.write_text(source, encoding='utf-8')
           class ApprovedArt(HTMLParser):
               def __init__(self):
