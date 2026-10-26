@@ -104,6 +104,49 @@ jobs:
           </script>
           """
           source = source.replace(marker, chooser + marker, 1)
+          # Sound: keep menu visible; choose ON or OFF in a separate dialog.
+          sound_chooser = r"""
+          <style>
+          #v340-sound-chooser{position:fixed;inset:0;z-index:2147483646;display:none;align-items:center;justify-content:center;background:rgba(0,8,23,.78)}
+          #v340-sound-chooser .sound-panel{width:min(520px,90vw);padding:22px;border:2px solid #48d9ff;border-radius:18px;background:#081b32;color:white;text-align:center;box-shadow:0 0 32px #1ba9ee80;font:700 20px system-ui,sans-serif}
+          #v340-sound-chooser .sound-choices{display:flex;gap:12px;margin-top:18px}
+          #v340-sound-chooser button{flex:1;min-height:60px;border:2px solid #64e5ff;border-radius:12px;background:linear-gradient(120deg,#13afd5,#6545d9);color:white;font:700 22px system-ui,sans-serif}
+          #v340-sound-chooser button[aria-pressed=true]{border-color:#ffda66;box-shadow:0 0 0 2px #ffda66}
+          #v340-sound-chooser .sound-cancel{margin-top:12px;min-height:40px;font-size:15px;background:#19334d}
+          </style>
+          <div id="v340-sound-chooser" role="dialog" aria-modal="true" aria-label="Choose sound on or off">
+            <div class="sound-panel"><div>SOUND SETTINGS</div>
+              <div class="sound-choices"><button type="button" data-sound="on">ON</button><button type="button" data-sound="off">OFF</button></div>
+              <button type="button" class="sound-cancel" data-sound="cancel">CANCEL</button>
+            </div>
+          </div>
+          <script>
+          (function(){
+            var dialog=document.getElementById('v340-sound-chooser');
+            var sound=document.getElementById('sound');
+            if(!dialog||!sound){console.error('V340 sound selector missing');return;}
+            function isOn(){return /sound on/i.test(sound.textContent||'');}
+            sound.addEventListener('click',function(e){
+              e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
+              dialog.style.display='flex';
+              dialog.querySelector('[data-sound=on]').setAttribute('aria-pressed',String(isOn()));
+              dialog.querySelector('[data-sound=off]').setAttribute('aria-pressed',String(!isOn()));
+            },true);
+            dialog.addEventListener('click',function(e){
+              e.stopPropagation();
+              var btn=e.target.closest('[data-sound]');
+              if(!btn)return;
+              var choice=btn.getAttribute('data-sound');
+              if(choice!=='cancel' && isOn()!==(choice==='on') && typeof sound.onclick==='function'){
+                sound.onclick.call(sound,{preventDefault:function(){},stopPropagation:function(){}});
+              }
+              dialog.style.display='none';
+            });
+          })();
+          </script>
+          """
+          source = source.replace(marker, sound_chooser + marker, 1)
+
           # Retire temporary V319/V335 tester giveaways; preserve legitimate earnings.
           import re
           for version in ('319', '335'):
