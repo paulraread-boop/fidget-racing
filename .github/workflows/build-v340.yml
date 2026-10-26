@@ -137,12 +137,12 @@ jobs:
           # Use the existing replay exit action; label it clearly for testers.
           old_return = '<button data-r="exit">↩ RESULTS</button>'
           new_return = '<button data-r="exit">↩ RETURN TO RESULTS</button>'
-          if source.count(old_return) != 1:
+          if source.count(old_return) < 1:
               raise SystemExit('Replay return control not found; refusing unrelated changes')
-          source = source.replace(old_return, new_return, 1)
+          source = source.replace(old_return, new_return)
           # Increase AI compensation for each garage upgrade tier by 1 point.
-          old_upgrade_ai = '[0,0.03,0.08,0.13,0.18,0.23]'
-          new_upgrade_ai = '[0,0.04,0.09,0.14,0.19,0.24]'
+          old_upgrade_ai = 'equippedTierPct>=25 ? 1.23 : equippedTierPct>=20 ? 1.18 : equippedTierPct>=15 ? 1.13 : equippedTierPct>=10 ? 1.08 : equippedTierPct>=5 ? 1.03 : 1.0075'
+          new_upgrade_ai = 'equippedTierPct>=25 ? 1.24 : equippedTierPct>=20 ? 1.19 : equippedTierPct>=15 ? 1.14 : equippedTierPct>=10 ? 1.09 : equippedTierPct>=5 ? 1.04 : 1.0075'
           if source.count(old_upgrade_ai) != 1:
               raise SystemExit('AI upgrade compensation table not found uniquely')
           source = source.replace(old_upgrade_ai, new_upgrade_ai, 1)
