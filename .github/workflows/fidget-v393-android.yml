@@ -68,27 +68,7 @@ jobs:
               sys.exit('Combined parts do not form complete HTML; refusing broken APK')
           out=Path('app/src/main/assets')
           out.mkdir(parents=True,exist_ok=True)
-          # Fit the existing approved UI to the actual landscape viewport, without changing game logic.
-          fit_script = """<script>
-          (function () {
-            function fitGame() {
-              var b = document.body;
-              if (!b) return;
-              b.style.zoom = '1';
-              var vw = document.documentElement.clientWidth;
-              var vh = document.documentElement.clientHeight;
-              var w = Math.max(b.scrollWidth, document.documentElement.scrollWidth);
-              var h = Math.max(b.scrollHeight, document.documentElement.scrollHeight);
-              var scale = Math.min(1, vw / Math.max(1, w), vh / Math.max(1, h));
-              b.style.zoom = String(Math.max(0.4, scale));
-            }
-            window.addEventListener('load', fitGame);
-            window.addEventListener('resize', fitGame);
-            window.addEventListener('orientationchange', fitGame);
-            document.addEventListener('DOMContentLoaded', fitGame);
-          })();
-          </script>"""
-          html = html.replace('</body>', fit_script + '</body>') if '</body>' in html else html.replace('</BODY>', fit_script + '</BODY>')
+          # Keep approved HTML unchanged; fit Android system bars in native WebView.
           (out/'index.html').write_text(html,encoding='utf-8')
           print('Validated HTML bytes:',len(raw))
           PY
@@ -133,6 +113,9 @@ jobs:
           package com.fidgetracing.game;
           import android.app.Activity;
           import android.os.Bundle;
+          import android.os.Build;
+          import android.view.WindowInsets;
+          import android.view.View;
           import android.webkit.WebView;
           import android.webkit.WebChromeClient;
           import android.webkit.WebViewClient;
@@ -143,6 +126,13 @@ jobs:
                   super.onCreate(state);
                   web=new WebView(this);
                   setContentView(web);
+                  if (Build.VERSION.SDK_INT >= 30) {
+                      web.setOnApplyWindowInsetsListener((v, insets) -> {
+                          android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                          v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                          return insets;
+                      });
+                  }
                   WebSettings s=web.getSettings();
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
