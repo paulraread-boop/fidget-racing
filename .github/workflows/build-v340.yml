@@ -159,6 +159,17 @@ jobs:
           if source.count(old_tiers) != 1:
               raise SystemExit('AI tuning tiers not found uniquely; refusing unrelated changes')
           source = source.replace(old_tiers, new_tiers, 1)
+          # Smooth spectator camera and allow another AI race after Quit.
+          changes = [
+            ("if(droneClock>7){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,Math.floor(Math.random()*Math.min(3,active.length)))].i;}", "if(droneClock>18){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,active.length-1)].i;}"),
+            ("cam.x+=(me.x+Math.cos(me.a)*trail-cam.x)*(cameraDrone?.055:.1);cam.y+=(me.y+Math.sin(me.a)*trail-cam.y)*(cameraDrone?.055:.1);", "cam.x+=(me.x+Math.cos(me.a)*trail-cam.x)*(spectatorMode?.028:(cameraDrone?.055:.1));cam.y+=(me.y+Math.sin(me.a)*trail-cam.y)*(spectatorMode?.028:(cameraDrone?.055:.1));"),
+            ("function quitRace(){const connected=netRole==='host'||netRole==='client';", "function quitRace(){if(spectatorMode){returnToMenu();if(window.fidgetGoToOriginalStartScreen)window.fidgetGoToOriginalStartScreen();return;}const connected=netRole==='host'||netRole==='client';"),
+            ("function startSpectating(){if(netRole!=='solo')", "function startSpectating(){if(state==='paused'||state==='finished'){state='ready';$('overlay').classList.add('hidden');}if(netRole!=='solo')")
+          ]
+          for before, after in changes:
+              if source.count(before)!=1:
+                  raise SystemExit('Spectator repair target missing: '+before[:50])
+              source=source.replace(before,after,1)
           # V340 replay: compact controls, no live racing touch buttons, one replay entry.
           replay_style = """
           <style id="v340-replay-cleanup">
