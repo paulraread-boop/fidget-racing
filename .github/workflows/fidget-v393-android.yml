@@ -21,9 +21,10 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           test -d "$ANDROID_HOME/platforms" || { echo 'Android SDK missing'; exit 1; }
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.13'
       - name: Assemble V393 HTML from five uploaded parts
         run: |
           python3 - <<'PY'
@@ -79,18 +80,18 @@ jobs:
           rootProject.name = 'FidgetRacing'
           include ':app'
           EOF
-          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
+          echo "plugins { id 'com.android.application' version '8.13.2' apply false }" > build.gradle
           cat > app/build.gradle <<'EOF'
           plugins { id 'com.android.application' }
           android {
               namespace 'com.fidgetracing.game'
-              compileSdk 35
+              compileSdk 36
               defaultConfig {
                   applicationId 'com.fidgetracing.game'
                   minSdk 24
-                  targetSdk 28
-                  versionCode 393
-                  versionName '393'
+                  targetSdk 36
+                  versionCode 394
+                  versionName '394'
               }
           }
           EOF
@@ -164,7 +165,7 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug :app:bundleRelease
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-V393-APK-AAB
+          name: Fidget-Racing-V394-API36-APK-AAB
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/bundle/release/*.aab
