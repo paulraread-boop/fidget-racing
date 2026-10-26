@@ -126,6 +126,8 @@ jobs:
                   s.setJavaScriptEnabled(true);
                   s.setDomStorageEnabled(true);
                   s.setAllowFileAccess(true);
+                  s.setUseWideViewPort(true);
+                  s.setLoadWithOverviewMode(true);
                   s.setMediaPlaybackRequiresUserGesture(false);
                   web.setWebViewClient(new WebViewClient());
                   web.setWebChromeClient(new WebChromeClient());
