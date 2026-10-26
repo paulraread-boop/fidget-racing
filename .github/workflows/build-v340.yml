@@ -52,7 +52,13 @@ jobs:
           new = "$('side').onclick=(event)=>{event.preventDefault();event.stopPropagation();release();rightControls=!rightControls;applySide();"
           if old not in source:
               raise SystemExit('Steering handler not found; refusing unrelated game edits')
-          html.write_text(source.replace(old, new, 1), encoding='utf-8')
+          source = source.replace(old, new, 1)
+          close_all = "menu.addEventListener('click',function(e){if(e.target.closest('button'))close()})"
+          close_except_steering = "menu.addEventListener('click',function(e){if(e.target.closest('button:not(#side)'))close()})"
+          if close_all not in source:
+              raise SystemExit('Menu auto-close handler not found; refusing unrelated edits')
+          source = source.replace(close_all, close_except_steering, 1)
+          html.write_text(source, encoding='utf-8')
           class ApprovedArt(HTMLParser):
               def __init__(self):
                   super().__init__()
