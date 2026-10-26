@@ -40,7 +40,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Apply steering toggle and approved Fidget Racing launcher artwork
+      - name: Add explicit steering-side chooser and approved launcher artwork
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -48,16 +48,62 @@ jobs:
           import base64
           html = Path('android-v340/app/src/main/assets/index.html')
           source = html.read_text(encoding='utf-8')
-          old = "$('side').onclick=()=>{release();rightControls=!rightControls;applySide();"
-          new = "$('side').onclick=(event)=>{event.preventDefault();event.stopPropagation();release();rightControls=!rightControls;applySide();"
-          if old not in source:
-              raise SystemExit('Steering handler not found; refusing unrelated game edits')
-          source = source.replace(old, new, 1)
-          close_all = "menu.addEventListener('click',function(e){if(e.target.closest('button'))close()})"
-          close_except_steering = "menu.addEventListener('click',function(e){if(e.target.closest('button:not(#side)'))close()})"
-          if close_all not in source:
-              raise SystemExit('Menu auto-close handler not found; refusing unrelated edits')
-          source = source.replace(close_all, close_except_steering, 1)
+          # Keep the game's original steering control implementation intact.
+          # Replace its menu interaction with an explicit Left/Right chooser.
+          marker = '</body>'
+          if marker not in source:
+              raise SystemExit('HTML body closing tag not found')
+          chooser = r"""
+          <style>
+          #v340-steering-chooser{position:fixed;inset:0;z-index:2147483646;display:none;align-items:center;justify-content:center;background:rgba(0,8,23,.78)}
+          #v340-steering-chooser .steering-panel{width:min(520px,90vw);padding:22px;border:2px solid #48d9ff;border-radius:18px;background:#081b32;color:white;text-align:center;box-shadow:0 0 32px #1ba9ee80;font:700 20px system-ui,sans-serif}
+          #v340-steering-chooser .steering-choices{display:flex;gap:12px;margin-top:18px}
+          #v340-steering-chooser button{flex:1;min-height:64px;border:2px solid #64e5ff;border-radius:12px;background:linear-gradient(120deg,#13afd5,#6545d9);color:white;font:700 22px system-ui,sans-serif}
+          #v340-steering-chooser button[aria-pressed=true]{border-color:#ffda66;box-shadow:0 0 0 2px #ffda66}
+          #v340-steering-chooser .steering-cancel{margin-top:12px;min-height:40px;font-size:15px;background:#19334d}
+          </style>
+          <div id="v340-steering-chooser" role="dialog" aria-modal="true" aria-label="Choose steering side">
+            <div class="steering-panel">
+              <div>CHOOSE STEERING SIDE</div>
+              <div class="steering-choices">
+                <button type="button" data-side="left">LEFT</button>
+                <button type="button" data-side="right">RIGHT</button>
+              </div>
+              <button type="button" class="steering-cancel" data-side="cancel">CANCEL</button>
+            </div>
+          </div>
+          <script>
+          (function(){
+            var chooser=document.getElementById('v340-steering-chooser');
+            var side=document.getElementById('side');
+            if(!chooser||!side){console.error('V340 steering chooser: steering control missing');return;}
+            function selectedRight(){return /right/i.test(side.textContent||'');}
+            function show(){
+              chooser.style.display='flex';
+              chooser.querySelector('[data-side=left]').setAttribute('aria-pressed',String(!selectedRight()));
+              chooser.querySelector('[data-side=right]').setAttribute('aria-pressed',String(selectedRight()));
+            }
+            // Capture before the existing toggle and any menu-dismiss handler.
+            side.addEventListener('click',function(e){
+              e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();show();
+            },true);
+            chooser.addEventListener('click',function(e){
+              e.stopPropagation();
+              var choice=e.target.closest('[data-side]');
+              if(!choice)return;
+              var requested=choice.getAttribute('data-side');
+              if(requested!=='cancel' && selectedRight()!==(requested==='right')){
+                // Invoke the original game steering logic only if a change is needed.
+                if(typeof side.onclick==='function')side.onclick.call(side,{
+                  preventDefault:function(){},stopPropagation:function(){}
+                });
+              }
+              chooser.style.display='none';
+            });
+          })();
+          </script>
+          """
+          source = source.replace(marker, chooser + marker, 1)
           html.write_text(source, encoding='utf-8')
           class ApprovedArt(HTMLParser):
               def __init__(self):
