@@ -91,8 +91,8 @@ jobs:
                   applicationId 'com.fidgetracing.game'
                   minSdk 24
                   targetSdk 36
-                  versionCode 394
-                  versionName '394'
+                  versionCode 395
+                  versionName '395'
               }
           }
           EOF
@@ -124,14 +124,19 @@ jobs:
               WebView web;
               @Override public void onCreate(Bundle state) {
                   super.onCreate(state);
+                  android.widget.FrameLayout root=new android.widget.FrameLayout(this);
                   web=new WebView(this);
-                  setContentView(web);
+                  root.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));
+                  setContentView(root);
                   if (Build.VERSION.SDK_INT >= 30) {
-                      web.setOnApplyWindowInsetsListener((v, insets) -> {
+                      root.setOnApplyWindowInsetsListener((v, insets) -> {
                           android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-                          v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                          android.widget.FrameLayout.LayoutParams lp=(android.widget.FrameLayout.LayoutParams)web.getLayoutParams();
+                          lp.setMargins(bars.left,bars.top,bars.right,bars.bottom);
+                          web.setLayoutParams(lp);
                           return insets;
                       });
+                      root.requestApplyInsets();
                   }
                   WebSettings s=web.getSettings();
                   s.setJavaScriptEnabled(true);
@@ -190,7 +195,7 @@ jobs:
           rm -f "$RUNNER_TEMP/upload-key.jks" app/build/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-V394-API36-APK-AAB
+          name: Fidget-Racing-V395-Landscape-Edges-APK-AAB
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/bundle/release/*.aab
