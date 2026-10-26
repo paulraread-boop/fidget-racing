@@ -229,15 +229,17 @@ jobs:
           if source.count(collision_anchor)!=1:
               raise SystemExit('Flat crossing collision insertion point missing')
           source=source.replace(collision_anchor,collision_fix+collision_anchor,1)
-          # Make the existing blue Race with Music button visible after a song rental.
-          old_music = "  refreshSongRentals();update(); } function refreshSongRentals()"
-          new_music = """  picks[String(race.value)]=i;save();
-  const raceButton=document.getElementById('musicRace81');
-  if(raceButton){raceButton.style.display='block';raceButton.hidden=false;}
-  refreshSongRentals();update(); } function refreshSongRentals()"""
-          if source.count(old_music)!=1:
-              raise SystemExit('Music rental completion handler not found uniquely')
-          source=source.replace(old_music,new_music,1)
+          # Existing blue Race with Music button is present in V340 markup.
+          # Repaint it after rental completion, without changing purchases or music.
+          music_old = " refreshSongRentals();update();\\n}\\nfunction refreshSongRentals(){"
+          music_new = """ refreshSongRentals();update();
+ const raceWithMusic=document.getElementById('musicRace81');
+ if(raceWithMusic){raceWithMusic.hidden=false;raceWithMusic.style.display='block';}
+}
+function refreshSongRentals(){"""
+          if source.count(music_old)!=1:
+              raise SystemExit('Actual song rental completion point not found')
+          source=source.replace(music_old,music_new,1)
           # Smooth spectator camera and allow another AI race after Quit.
           changes = [
             ("if(droneClock>7){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,Math.floor(Math.random()*Math.min(3,active.length)))].i;}", "if(droneClock>18){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,active.length-1)].i;}"),
