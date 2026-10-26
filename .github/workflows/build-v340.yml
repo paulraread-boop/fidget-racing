@@ -140,6 +140,12 @@ jobs:
           if source.count(old_return) != 1:
               raise SystemExit('Replay return control not found; refusing unrelated changes')
           source = source.replace(old_return, new_return, 1)
+          # Increase AI compensation for each garage upgrade tier by 1 point.
+          old_upgrade_ai = '[0,0.03,0.08,0.13,0.18,0.23]'
+          new_upgrade_ai = '[0,0.04,0.09,0.14,0.19,0.24]'
+          if source.count(old_upgrade_ai) != 1:
+              raise SystemExit('AI upgrade compensation table not found uniquely')
+          source = source.replace(old_upgrade_ai, new_upgrade_ai, 1)
           # Raise only slower and middle AI tiers by 1%; leave fastest unchanged.
           old_tiers = '[0.9494,0.952,0.965][c.aiTuningTier]'
           new_tiers = '[0.958894,0.96152,0.965][c.aiTuningTier]'
