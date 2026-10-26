@@ -202,6 +202,33 @@ jobs:
           if source.count(old_tiers) != 1:
               raise SystemExit('AI tuning tiers not found uniquely; refusing unrelated changes')
           source = source.replace(old_tiers, new_tiers, 1)
+          # Physical-position collisions at flat crossings; preserve existing PIT physics.
+          collision_anchor = '// Silver Ravine crossing impacts: compare actual world-space car positions,'
+          collision_fix = """
+          // V341 flat crossing contacts: use real car positions, not lap progress.
+          if(!qualifying)for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){
+            const a=cars[i],b=cars[j];
+            if(a.finish!==null||b.finish!==null||a.hitCooldown>0||b.hitCooldown>0)continue;
+            if(onBridge(a.p)!==onBridge(b.p))continue;
+            const pa=point(a.lane,a.p),pb=point(b.lane,b.p);
+            const dx=pa.x-pb.x,dy=pa.y-pb.y;
+            if(dx*dx+dy*dy>22*22)continue;
+            const arcGap=Math.abs((((b.p-a.p)%1+1.5)%1)-.5)*total;
+            if(arcGap<38)continue;
+            const angle=Math.abs(Math.atan2(Math.sin(pa.a-pb.a),Math.cos(pa.a-pb.a)));
+            if(angle<.38)continue;
+            const hard=Math.max(a.v,b.v)>.8,rollover=hard&&Math.random()<.22;
+            for(const c of [a,b]){
+              c.v=Math.max(.08,c.v*(rollover?.36:.58));c.hitCooldown=1.65;c.wobble=.65;
+              if(rollover){c.rollDuration=1.4;c.rollTime=1.4;c.spinRemaining=0;c.spinAngle=0;}
+              else if(hard){c.spinRemaining=Math.PI*2;c.spinRate=(c===a?1:-1)*Math.PI*2/1.35;}
+            }
+            if(a.i===playerSlot||b.i===playerSlot){flash=.55;beep(220,.15);}
+          }
+          """
+          if source.count(collision_anchor)!=1:
+              raise SystemExit('Flat crossing collision insertion point missing')
+          source=source.replace(collision_anchor,collision_fix+collision_anchor,1)
           # Smooth spectator camera and allow another AI race after Quit.
           changes = [
             ("if(droneClock>7){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,Math.floor(Math.random()*Math.min(3,active.length)))].i;}", "if(droneClock>18){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,active.length-1)].i;}"),
