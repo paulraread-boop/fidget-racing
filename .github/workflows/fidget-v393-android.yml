@@ -48,7 +48,7 @@ jobs:
                       files=[n for n in z.namelist() if not n.endswith('/')]
                       # V393 parts can include Android project files alongside their chunk.
                       # Select only the chunk matching this numbered archive.
-                      matches=[n for n in files if re.search(r'(?:^|/)part0?'+str(index)+r'\.(?:txt|bin|part),n,re.I)]
+                      matches=[n for n in files if re.search(r'(?:^|/)part0?'+str(index)+r'\.(?:txt|bin|part)]
                       if len(matches)!=1:
                           sys.exit('Expected exactly one part%02d chunk in %s; found %r' % (index,p.name,matches))
                       b=z.read(matches[0])
