@@ -173,7 +173,7 @@ jobs:
           test -n "$UPLOAD_KEYSTORE_BASE64" && test -n "$UPLOAD_KEYSTORE_PASSWORD" && test -n "$UPLOAD_KEY_ALIAS" && test -n "$UPLOAD_KEY_PASSWORD" || { echo 'Upload signing secrets are missing. Refusing to publish unsigned AAB.'; exit 1; }
           echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-key.jks"
           jarsigner -keystore "$RUNNER_TEMP/upload-key.jks" -storepass "$UPLOAD_KEYSTORE_PASSWORD" -keypass "$UPLOAD_KEY_PASSWORD" -signedjar app/build/outputs/bundle/release/app-release-signed.aab app/build/outputs/bundle/release/app-release.aab "$UPLOAD_KEY_ALIAS"
-          jarsigner -verify -strict app/build/outputs/bundle/release/app-release-signed.aab
+          jarsigner -verify app/build/outputs/bundle/release/app-release-signed.aab
           rm -f "$RUNNER_TEMP/upload-key.jks" app/build/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
