@@ -146,6 +146,13 @@ jobs:
           if source.count(old_upgrade_ai) != 1:
               raise SystemExit('AI upgrade compensation table not found uniquely')
           source = source.replace(old_upgrade_ai, new_upgrade_ai, 1)
+          # Speedway visual repair: suppress the large overlaid bridge canvas.
+          # The normal road, boost pads, cars, and track geometry remain in use.
+          old_draw = "ctx.drawImage(bridge,0,0);drawPads(true);"
+          new_draw = "if(activeTrack!=='speedway')ctx.drawImage(bridge,0,0);drawPads(true);"
+          if source.count(old_draw) != 1:
+              raise SystemExit('Speedway bridge overlay drawing location not found uniquely')
+          source = source.replace(old_draw, new_draw, 1)
           # Raise only slower and middle AI tiers by 1%; leave fastest unchanged.
           old_tiers = '[0.9494,0.952,0.965][c.aiTuningTier]'
           new_tiers = '[0.958894,0.96152,0.965][c.aiTuningTier]'
