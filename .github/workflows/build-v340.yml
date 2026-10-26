@@ -229,12 +229,17 @@ jobs:
           if source.count(collision_anchor)!=1:
               raise SystemExit('Flat crossing collision insertion point missing')
           source=source.replace(collision_anchor,collision_fix+collision_anchor,1)
-          # Keep YAML block indentation intact; add a rental-completion display refresh.
-          music_old = " refreshSongRentals();update();\\n}\\nfunction refreshSongRentals(){"
-          music_new = " refreshSongRentals();update();\\n const raceWithMusic=document.getElementById('musicRace81');if(raceWithMusic){raceWithMusic.hidden=false;raceWithMusic.style.display='block';}\\n}\\nfunction refreshSongRentals(){"
+          # Music rental cards are re-rendered when opened; refresh button from saved song.
+          music_old = "function syncSongButton(){songStart.style.display=hasSavedSong()?'block':'none';launchButton.disabled=!rented(id);songStart.disabled=!rented(id)}"
+          music_new = "function syncSongButton(){const selected=hasSavedSong();songStart.style.display=selected?'block':'none';launchButton.disabled=!rented(id);songStart.disabled=!rented(id)}"
           if source.count(music_old)!=1:
-              raise SystemExit('Song rental completion point not found')
+              raise SystemExit('V340 song start button logic not found')
           source=source.replace(music_old,music_new,1)
+          # Refresh rental cards on return so saved songs reveal their race buttons.
+          rental_old = "function show(){root.classList.add('open');render();refreshTimers()}"
+          rental_new = "function show(){root.classList.add('open');render();refreshTimers()}"
+          if source.count(rental_old)!=1:
+              raise SystemExit('V340 rental screen not found')
           # Smooth spectator camera and allow another AI race after Quit.
           changes = [
             ("if(droneClock>7){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,Math.floor(Math.random()*Math.min(3,active.length)))].i;}", "if(droneClock>18){droneClock=0;const active=leaders.filter(c=>c.finish===null);if(active.length)spectatorCar=active[Math.min(2,active.length-1)].i;}"),
