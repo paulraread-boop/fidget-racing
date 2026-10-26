@@ -41,22 +41,18 @@ jobs:
               sys.exit('Parts 1-5 are not all present')
           import io,zipfile
           payloads=[]
-          for p in parts:
+          for index,p in enumerate(parts,1):
               b=p.read_bytes()
               if zipfile.is_zipfile(io.BytesIO(b)):
                   with zipfile.ZipFile(io.BytesIO(b)) as z:
-                      candidates=[n for n in z.namelist() if not n.endswith('/') and not n.startswith('__MACOSX/')]
-                      candidates=[n for n in candidates if not n.startswith('.') and not n.endswith('.DS_Store')]
-                      if len(candidates)==1:
-                          b=z.read(candidates[0])
-                      else:
-                          # Some uploaded ZIPs contain directory entries and multiple chunk files.
-                          # Only accept an unambiguous payload; never silently combine unrelated files.
-                          payload=[n for n in candidates if n.lower().endswith(('.part','.bin','.html','.txt'))]
-                          if len(payload)==1:
-                              b=z.read(payload[0])
-                          else:
-                              sys.exit('Ambiguous ZIP payload in '+p.name+': '+repr(candidates))
+                      files=[n for n in z.namelist() if not n.endswith('/')]
+                      # V393 parts can include Android project files alongside their chunk.
+                      # Select only the chunk matching this numbered archive.
+                      matches=[n for n in files if re.search(r'(?:^|/)part0?'+str(index)+r'\\.(?:txt|bin|part)$',n,re.I)]
+                      if len(matches)!=1:
+                          sys.exit('Expected exactly one part%02d chunk in %s; found %r' % (index,p.name,matches))
+                      b=z.read(matches[0])
+                      print('Extracted',matches[0],'from',p.name,'bytes',len(b))
               payloads.append(b)
           raw=b''.join(payloads)
           if raw.startswith(b'PK') and zipfile.is_zipfile(io.BytesIO(raw)):
