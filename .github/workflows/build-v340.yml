@@ -106,32 +106,34 @@ jobs:
           source = source.replace(marker, chooser + marker, 1)
           # Retire temporary V319/V335 tester giveaways; preserve legitimate earnings.
           import re
-          for version, amount in [('v319', 20000), ('v335', 40000)]:
-              pattern = r'// V' + version[1:] + r': one-time \\+' + format(amount, ',') + r' RC[^\\n]*\\ntry \\{\\n.*?\\n\\} catch\\(e\\) \\{\\}'
-              source, count = re.subn(pattern, '', source, count=1, flags=re.S)
-              if count != 1:
-                  raise SystemExit('Could not find temporary ' + version + ' grant; aborting safely')
-          # Reverse only grants already given to this tester, once per device.
-          correction = """<script id="v340-retire-temporary-test-credits">
-          (function(){try{
+          for version in ('319', '335'):
+              begin = source.find('// V' + version + ': one-time +')
+              if begin < 0:
+                  raise SystemExit('Missing V' + version + ' temporary bonus block')
+              finish = source.find('} catch(e) {}', begin)
+              if finish < 0 or finish - begin > 750:
+                  raise SystemExit('Cannot safely locate V' + version + ' bonus end')
+              source = source[:begin] + source[finish + len('} catch(e) {}'):]
+          # Remove only the historic test giveaways from saved accounts.
+          correction = """
+          try {
             const done='fidget-v340-test-grants-reversed';
-            if(localStorage.getItem(done)==='yes')return;
-            let deduction=0;
-            if(localStorage.getItem('fidget-v319-test-20000-granted')==='yes')deduction+=20000;
-            if(localStorage.getItem('fidget-v335-test-40000-granted')==='yes')deduction+=40000;
-            if(deduction){
-              const current=Math.max(0,Number(localStorage.getItem('fidgetCredits'))||0);
-              localStorage.setItem('fidgetCredits',String(Math.max(0,current-deduction)));
-              try{if(typeof racingCredits!=='undefined'){racingCredits=Math.max(0,current-deduction);if(typeof saveCredits==='function')saveCredits();}}catch(e){}
+            if(localStorage.getItem(done)!=='yes'){
+              let deduction=0;
+              if(localStorage.getItem('fidget-v319-test-20000-granted')==='yes')deduction+=20000;
+              if(localStorage.getItem('fidget-v335-test-40000-granted')==='yes')deduction+=40000;
+              if(deduction){
+                const current=Math.max(0,Number(localStorage.getItem('fidgetCredits'))||0);
+                localStorage.setItem('fidgetCredits',String(Math.max(0,current-deduction)));
+              }
+              localStorage.setItem(done,'yes');
             }
-            localStorage.setItem(done,'yes');
-          }catch(e){console.error('V340 test credits adjustment',e)}})();
-          </script>"""
-          # Place before the wallet initialization so the display uses corrected balance.
+          } catch(e) {console.error('V340 test credits correction',e)}
+          """
           anchor = '// V307 release wallet: grant 2,500 RC once to new players only.'
           if anchor not in source:
-              raise SystemExit('Wallet anchor not found')
-          source = source.replace(anchor, correction + '\\n' + anchor, 1)
+              raise SystemExit('Wallet initialization not found')
+          source = source.replace(anchor, correction + anchor, 1)
           html.write_text(source, encoding='utf-8')
           class ApprovedArt(HTMLParser):
               def __init__(self):
