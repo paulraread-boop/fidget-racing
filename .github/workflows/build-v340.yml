@@ -134,6 +134,12 @@ jobs:
           if anchor not in source:
               raise SystemExit('Wallet initialization not found')
           source = source.replace(anchor, correction + anchor, 1)
+          # Use the existing replay exit action; label it clearly for testers.
+          old_return = '<button data-r="exit">↩ RESULTS</button>'
+          new_return = '<button data-r="exit">↩ RETURN TO RESULTS</button>'
+          if source.count(old_return) != 1:
+              raise SystemExit('Replay return control not found; refusing unrelated changes')
+          source = source.replace(old_return, new_return, 1)
           # V340 replay: compact controls, no live racing touch buttons, one replay entry.
           replay_style = """
           <style id="v340-replay-cleanup">
