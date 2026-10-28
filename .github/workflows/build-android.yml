@@ -46,6 +46,19 @@ jobs:
           unzip -oq V426_Part_3_Images_B.zip -d android-project/app/src/main/assets
           test -s android-project/app/src/main/assets/index.html
           test "$(find android-project/app/src/main/assets/assets -type f | wc -l)" -eq 9
+      - name: Fit Android landscape game to device viewport
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('android-project/app/src/main/assets/index.html')
+          html=p.read_text()
+          # Android WebView: use a wide layout viewport so the entire game
+          # scales to the available landscape width instead of clipping.
+          html,n=re.subn(r'(<meta\\s+content=")width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover("\\s+name="viewport"\\s*/>)',r'\\g<1>width=1200,viewport-fit=cover\\2',html,count=1)
+          if n!=1: raise SystemExit('Expected viewport meta tag not found')
+          p.write_text(html)
+          PY
       - name: Install approved Fidget Racing cover as app icon
         run: |
           python3 -m pip install --quiet Pillow
