@@ -46,18 +46,32 @@ jobs:
           unzip -oq V426_Part_3_Images_B.zip -d android-project/app/src/main/assets
           test -s android-project/app/src/main/assets/index.html
           test "$(find android-project/app/src/main/assets/assets -type f | wc -l)" -eq 9
-      - name: Fit Android landscape game to device viewport
+      - name: Restore Android landscape screen fitting
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('android-project/app/src/main/assets/index.html')
           html=p.read_text()
           old='width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover'
-          if old not in html:
-              raise SystemExit('Expected V426 viewport string not found')
-          html=html.replace(old,'width=1200,initial-scale=1,viewport-fit=cover',1)
+          if old not in html: raise SystemExit('V426 viewport not found')
+          html=html.replace(old,'width=device-width,initial-scale=1,viewport-fit=cover',1)
+          css="""<style id="v426-android-screen-fit">
+          html,body{max-width:100vw!important;overflow-x:hidden!important}
+          @media(orientation:landscape){
+            body{box-sizing:border-box!important;padding-right:env(safe-area-inset-right,0px)!important}
+            #customCarPanel:not(.hidden),#garagePanel:not(.hidden),#raceSetup:not(.hidden),#teamPanel:not(.hidden),#networkPanel:not(.hidden){
+              right:calc(76px + env(safe-area-inset-right,0px))!important;
+              max-width:calc(100vw - 76px - env(safe-area-inset-right,0px))!important;
+              box-sizing:border-box!important
+            }
+            #customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{
+              max-width:100%!important;box-sizing:border-box!important;overflow:auto!important
+            }
+          }
+          </style>"""
+          html=html.replace('</head>',css+'</head>',1) if '</head>' in html else css+html
           p.write_text(html)
-          print('V426 landscape viewport updated')
+          print('Android landscape safe-area fitting applied')
           PY
       - name: Install approved Fidget Racing cover as app icon
         run: |
