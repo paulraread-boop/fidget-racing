@@ -1,0 +1,150 @@
+name: Fidget Racing V426 Google Play Signed AAB
+# Approved faster-AI build; yellow #14 icon from embedded artwork
+on:
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v426-android-source
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Unpack approved project
+        run: |
+          mkdir -p android-project
+          unzip -q 'FIDGET_RACING_EXIT_FIXED_SOURCE.zip' -d android-project
+      - name: Assemble V426 game and image assets
+        run: |
+          mkdir -p android-project/app/src/main/assets
+          unzip -oq V426_Part_1_Game_HTML.zip -d android-project/app/src/main/assets
+          unzip -oq V426_Part_2_Images_A.zip -d android-project/app/src/main/assets
+          unzip -oq V426_Part_3_Images_B.zip -d android-project/app/src/main/assets
+          test -s android-project/app/src/main/assets/index.html
+          test "$(find android-project/app/src/main/assets/assets -type f | wc -l)" -eq 9
+      - name: Restore previously working landscape auto-fit
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-project/app/src/main/assets/index.html')
+          html=p.read_text()
+          script="""<script>
+          (function () {
+            function fitGame() {
+              var b = document.body;
+              if (!b) return;
+              b.style.zoom = '1';
+              var vw = document.documentElement.clientWidth;
+              var vh = document.documentElement.clientHeight;
+              var w = Math.max(b.scrollWidth, document.documentElement.scrollWidth);
+              var h = Math.max(b.scrollHeight, document.documentElement.scrollHeight);
+              var scale = Math.min(1, vw / Math.max(1, w), vh / Math.max(1, h));
+              b.style.zoom = String(Math.max(0.4, scale));
+            }
+            window.addEventListener('load', fitGame);
+            window.addEventListener('resize', fitGame);
+            window.addEventListener('orientationchange', fitGame);
+            document.addEventListener('DOMContentLoaded', fitGame);
+          })();
+          </script>"""
+          if '</body>' in html: html=html.replace('</body>',script+'</body>',1)
+          elif '</BODY>' in html: html=html.replace('</BODY>',script+'</BODY>',1)
+          else: raise SystemExit('Cannot find closing body tag for known-good fit script')
+          p.write_text(html)
+          print('Restored auto-fit from October 26 approved build')
+          PY
+      - name: Restore working Android WebView settings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files=list(Path('android-project/app/src/main').rglob('*.java'))
+          changed=0
+          for p in files:
+              s=p.read_text()
+              if 'getSettings()' not in s: continue
+              if 'setUseWideViewPort(true)' not in s:
+                  import re
+                  s,n=re.subn(r'(\\w+\\.setJavaScriptEnabled\\(true\\);)',r'\\1\\n                  s.setUseWideViewPort(true);\\n                  s.setLoadWithOverviewMode(true);',s,count=1)
+                  if n==0:
+                      s=s.replace('web.loadUrl(', 'web.getSettings().setUseWideViewPort(true); web.getSettings().setLoadWithOverviewMode(true); web.loadUrl(',1)
+              p.write_text(s)
+              changed+=1
+          if not changed: raise SystemExit('No Android WebView activity found')
+          print('WebView settings restored in',changed,'file(s)')
+          PY
+      - name: Keep Android system bars outside gameplay
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('android-project/app/src/main')
+          p=root/'java/com/fidgetracing/game/MainActivity.java'
+          if not p.exists(): raise SystemExit('MainActivity.java missing')
+          s=p.read_text()
+          print('MainActivity excerpt:',s[:2500])
+          flags=('android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | '
+                 'android.view.View.SYSTEM_UI_FLAG_FULLSCREEN | '
+                 'android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN')
+          if 'SYSTEM_UI_FLAG_IMMERSIVE_STICKY' not in s:
+              needle='setContentView('
+              if needle not in s: raise SystemExit('setContentView not found')
+              s=s.replace(needle,'getWindow().getDecorView().setSystemUiVisibility('+flags+');'+chr(10)+'        '+needle,1)
+              p.write_text(s)
+          print('Android immersive landscape configured')
+          PY
+      - name: Install approved Fidget Racing cover as app icon
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          source=Path('fidget-racing-cover-1.jpg')
+          if not source.is_file(): raise SystemExit('Approved app icon missing')
+          im=Image.open(source).convert('RGB')
+          for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              out=Path('android-project/app/src/main/res')/('mipmap-'+density)
+              out.mkdir(parents=True,exist_ok=True)
+              im.resize((size,size)).save(out/'ic_launcher.png')
+          manifest=Path('android-project/app/src/main/AndroidManifest.xml')
+          content=manifest.read_text()
+          if 'android:icon=' not in content:
+              content=content.replace('<application','<application android:icon="@mipmap/ic_launcher"',1)
+              manifest.write_text(content)
+          PY
+      - name: Build release AAB
+        working-directory: android-project
+        run: gradle --no-daemon bundleRelease
+      - name: Sign and verify Google Play AAB
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FIDGET_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.FIDGET_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.FIDGET_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.FIDGET_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for key in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!key}" ]; then echo "::error::Missing secret: $key"; exit 1; fi
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          src=$(find android-project/app/build/outputs/bundle/release -name '*.aab' -print -quit)
+          test -n "$src"
+          mkdir -p signed-release
+          jarsigner -keystore "$RUNNER_TEMP/upload.jks" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" -signedjar signed-release/Fidget-Racing-V426-Google-Play.aab "$src" "$KEY_ALIAS"
+          jarsigner -verify -strict signed-release/Fidget-Racing-V426-Google-Play.aab
+          rm -f "$RUNNER_TEMP/upload.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V426-SIGNED-Google-Play-AAB
+          if-no-files-found: error
+          retention-days: 30
+          path: signed-release/Fidget-Racing-V426-Google-Play.aab
