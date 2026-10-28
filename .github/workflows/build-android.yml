@@ -50,24 +50,35 @@ jobs:
         run: |
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
-          import re,base64,pathlib
-          p=pathlib.Path('android-project/app/src/main/assets/index.html')
-          m=re.search(r'<img\s+src="data:image/jpeg;base64,([^"]+)',p.read_text())
-          if not m: raise SystemExit('Approved game artwork missing')
-          pathlib.Path('art.jpg').write_bytes(base64.b64decode(m.group(1)))
-          PY
-          for item in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
-            density="${item%%:*}"; size="${item##*:}"
-            mkdir -p "android-project/app/src/main/res/mipmap-${density}"
-            python3 -c 'from PIL import Image; import sys; Image.open("art.jpg").convert("RGB").resize((int(sys.argv[1]),int(sys.argv[1]))).save(sys.argv[2])' "$size" "android-project/app/src/main/res/mipmap-${density}/ic_launcher.png"
-          done
-          python3 - <<'PY'
           from pathlib import Path
-          p=Path('android-project/app/src/main/AndroidManifest.xml')
-          s=p.read_text()
-          if 'android:icon=' not in s:
-            s=s.replace('<application','<application android:icon="@mipmap/ic_launcher"',1)
-          p.write_text(s)
+          from PIL import Image
+          from io import BytesIO
+          import base64,re
+          root=Path('android-project/app/src/main/assets')
+          html=(root/'index.html').read_text()
+          candidates=[]
+          for m in re.finditer(r'data:image/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)',html):
+              try:
+                  im=Image.open(BytesIO(base64.b64decode(m.group(1))))
+                  candidates.append((im.width*im.height,im.copy()))
+              except Exception: pass
+          for p in (root/'assets').rglob('*'):
+              if p.suffix.lower() in ('.jpg','.jpeg','.png','.webp'):
+                  try:
+                      im=Image.open(p)
+                      candidates.append((im.width*im.height,im.copy()))
+                  except Exception: pass
+          if not candidates: raise SystemExit('No game artwork found for launcher icon')
+          im=max(candidates,key=lambda x:x[0])[1].convert('RGB')
+          for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              out=Path('android-project/app/src/main/res')/('mipmap-'+density)
+              out.mkdir(parents=True,exist_ok=True)
+              im.resize((size,size)).save(out/'ic_launcher.png')
+          manifest=Path('android-project/app/src/main/AndroidManifest.xml')
+          content=manifest.read_text()
+          if 'android:icon=' not in content:
+              content=content.replace('<application','<application android:icon="@mipmap/ic_launcher"',1)
+              manifest.write_text(content)
           PY
       - name: Build debug APK and unsigned release bundle
         working-directory: android-project
