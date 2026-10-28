@@ -46,30 +46,15 @@ jobs:
           unzip -oq V426_Part_3_Images_B.zip -d android-project/app/src/main/assets
           test -s android-project/app/src/main/assets/index.html
           test "$(find android-project/app/src/main/assets/assets -type f | wc -l)" -eq 9
-      - name: Install approved yellow car app icon
+      - name: Install approved Fidget Racing cover as app icon
         run: |
           python3 -m pip install --quiet Pillow
           python3 - <<'PY'
           from pathlib import Path
           from PIL import Image
-          from io import BytesIO
-          import base64,re
-          root=Path('android-project/app/src/main/assets')
-          html=(root/'index.html').read_text()
-          candidates=[]
-          for m in re.finditer(r'data:image/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)',html):
-              try:
-                  im=Image.open(BytesIO(base64.b64decode(m.group(1))))
-                  candidates.append((im.width*im.height,im.copy()))
-              except Exception: pass
-          for p in (root/'assets').rglob('*'):
-              if p.suffix.lower() in ('.jpg','.jpeg','.png','.webp'):
-                  try:
-                      im=Image.open(p)
-                      candidates.append((im.width*im.height,im.copy()))
-                  except Exception: pass
-          if not candidates: raise SystemExit('No game artwork found for launcher icon')
-          im=max(candidates,key=lambda x:x[0])[1].convert('RGB')
+          source=Path('fidget-racing-cover-1.jpg')
+          if not source.is_file(): raise SystemExit('Approved app icon missing')
+          im=Image.open(source).convert('RGB')
           for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
               out=Path('android-project/app/src/main/res')/('mipmap-'+density)
               out.mkdir(parents=True,exist_ok=True)
