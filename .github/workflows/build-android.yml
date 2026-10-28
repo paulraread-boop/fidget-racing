@@ -46,32 +46,36 @@ jobs:
           unzip -oq V426_Part_3_Images_B.zip -d android-project/app/src/main/assets
           test -s android-project/app/src/main/assets/index.html
           test "$(find android-project/app/src/main/assets/assets -type f | wc -l)" -eq 9
-      - name: Restore Android landscape screen fitting
+      - name: Restore previously working landscape auto-fit
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('android-project/app/src/main/assets/index.html')
           html=p.read_text()
-          old='width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover'
-          if old not in html: raise SystemExit('V426 viewport not found')
-          html=html.replace(old,'width=device-width,initial-scale=1,viewport-fit=cover',1)
-          css="""<style id="v426-android-screen-fit">
-          html,body{max-width:100vw!important;overflow-x:hidden!important}
-          @media(orientation:landscape){
-            body{box-sizing:border-box!important;padding-right:env(safe-area-inset-right,0px)!important}
-            #customCarPanel:not(.hidden),#garagePanel:not(.hidden),#raceSetup:not(.hidden),#teamPanel:not(.hidden),#networkPanel:not(.hidden){
-              right:calc(76px + env(safe-area-inset-right,0px))!important;
-              max-width:calc(100vw - 76px - env(safe-area-inset-right,0px))!important;
-              box-sizing:border-box!important
+          script="""<script>
+          (function () {
+            function fitGame() {
+              var b = document.body;
+              if (!b) return;
+              b.style.zoom = '1';
+              var vw = document.documentElement.clientWidth;
+              var vh = document.documentElement.clientHeight;
+              var w = Math.max(b.scrollWidth, document.documentElement.scrollWidth);
+              var h = Math.max(b.scrollHeight, document.documentElement.scrollHeight);
+              var scale = Math.min(1, vw / Math.max(1, w), vh / Math.max(1, h));
+              b.style.zoom = String(Math.max(0.4, scale));
             }
-            #customCarPanel .network-card,#garagePanel .network-card,#raceSetup .network-card,#teamPanel .network-card,#networkPanel .network-card{
-              max-width:100%!important;box-sizing:border-box!important;overflow:auto!important
-            }
-          }
-          </style>"""
-          html=html.replace('</head>',css+'</head>',1) if '</head>' in html else css+html
+            window.addEventListener('load', fitGame);
+            window.addEventListener('resize', fitGame);
+            window.addEventListener('orientationchange', fitGame);
+            document.addEventListener('DOMContentLoaded', fitGame);
+          })();
+          </script>"""
+          if '</body>' in html: html=html.replace('</body>',script+'</body>',1)
+          elif '</BODY>' in html: html=html.replace('</BODY>',script+'</BODY>',1)
+          else: raise SystemExit('Cannot find closing body tag for known-good fit script')
           p.write_text(html)
-          print('Android landscape safe-area fitting applied')
+          print('Restored auto-fit from October 26 approved build')
           PY
       - name: Install approved Fidget Racing cover as app icon
         run: |
