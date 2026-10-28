@@ -1,4 +1,4 @@
-name: Build Fidget Racing Android
+name: Build Fidget Racing Android V426
 # Approved faster-AI build; yellow #14 icon from embedded artwork
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       game_file:
         description: 'Approved game HTML to package (must exist in repository root)'
         required: true
-        default: 'Fidget_Racing_APK_Inspection_Preview.html'
+        default: 'V426_Part_1_Game_HTML.zip'
         type: string
   push:
     paths:
@@ -38,21 +38,14 @@ jobs:
         run: |
           mkdir -p android-project
           unzip -q 'FIDGET_RACING_EXIT_FIXED_SOURCE.zip' -d android-project
-      - name: Include approved Build 18 playable game
-        env:
-          GAME_FILE: ${{ inputs.game_file || 'Fidget_Racing_APK_Inspection_Preview.html' }}
+      - name: Assemble V426 game and image assets
         run: |
-          test -f "$GAME_FILE" || { echo "ERROR: Approved preview $GAME_FILE is not in the repository. Upload it before running this workflow."; exit 1; }
-          test -s "$GAME_FILE" || { echo "ERROR: Approved preview is empty"; exit 1; }
-          cp "$GAME_FILE" android-project/app/src/main/assets/index.html
-      - name: Repair mobile menu and feature buttons
-        run: python3 android_menu_repair.py
-      - name: Repair background shutdown and exit lifecycle
-        run: python3 android_background_exit_repair.py
-      - name: Test collision-triggered rollover visual
-        run: python3 android_rollover_visual_test.py
-      - name: Incorporate new main menu and Chat Room
-        run: python3 android_new_menu_chat.py
+          mkdir -p android-project/app/src/main/assets
+          unzip -oq V426_Part_1_Game_HTML.zip -d android-project/app/src/main/assets
+          unzip -oq V426_Part_2_Images_A.zip -d android-project/app/src/main/assets
+          unzip -oq V426_Part_3_Images_B.zip -d android-project/app/src/main/assets
+          test -s android-project/app/src/main/assets/index.html
+          test "$(find android-project/app/src/main/assets/assets -type f | wc -l)" -eq 9
       - name: Install approved yellow car app icon
         run: |
           python3 -m pip install --quiet Pillow
