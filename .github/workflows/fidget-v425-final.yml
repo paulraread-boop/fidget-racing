@@ -31,7 +31,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import zipfile,hashlib,sys
-          parts=[Path(f'Fidget_Racing_V425_Source_Part_{i}_of_3.bin') for i in (1,2,3)]
+          parts=[Path(f'Fidget_Racing_V425_Source_Part_{i}_of_3-2.bin') for i in (1,2,3)]
           if not all(p.exists() for p in parts): sys.exit('Upload all three V425 source parts to the repository root first.')
           combined=b''.join(p.read_bytes() for p in parts)
           expected='5325d092e15b626918ee8c0b2f35178bcf04d8dba33b4f2c676fefefc1d73d1a'
