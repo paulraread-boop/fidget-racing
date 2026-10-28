@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/fidget-v393-android.yml'
       - 'fidget-racing-cover-1.jpg'
+      - 'V425_BUILD_TRIGGER.txt'
       - 'Fidget_Racing_V425_Source_Part_*_of_3.bin'
 jobs:
   android:
