@@ -1,0 +1,174 @@
+name: Build Fidget Racing V425 FINAL Android
+# Re-trigger build after latest upload; preserve approved V425 game content
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fidget-v393-android.yml'
+      - 'fidget-racing-cover-1.jpg'
+      - 'Fidget_Racing_V425_Song_Switch_No_Rebuild_Source.zip'
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Use preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -d "$ANDROID_HOME/platforms" || { echo 'Android SDK missing'; exit 1; }
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Verify locked V425 HTML from uploaded source ZIP
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile,hashlib,sys
+          p=Path('Fidget_Racing_V425_Song_Switch_No_Rebuild_Source.zip')
+          if not p.exists(): sys.exit('Upload the exact V425 source ZIP to the repository root first.')
+          with zipfile.ZipFile(p) as z:
+              names=[n for n in z.namelist() if n.lower().endswith('.html') and not n.endswith('/')]
+              if len(names)!=1: sys.exit('V425 ZIP must contain exactly one HTML file')
+              raw=z.read(names[0])
+          if b'<html' not in raw.lower() or b'</html>' not in raw.lower(): sys.exit('Invalid V425 HTML')
+          dest=Path('app/src/main/assets')
+          dest.mkdir(parents=True,exist_ok=True)
+          (dest/'index.html').write_bytes(raw)
+          print('V425 SHA256:',hashlib.sha256(raw).hexdigest())
+          print('V425 bytes:',len(raw))
+          PY
+      - name: Create minimal Android WebView wrapper
+        run: |
+          mkdir -p app/src/main/java/com/fidgetracing/game
+          cat > settings.gradle <<'EOF'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+          rootProject.name = 'FidgetRacing'
+          include ':app'
+          EOF
+          echo "plugins { id 'com.android.application' version '8.13.2' apply false }" > build.gradle
+          cat > app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.fidgetracing.game'
+              compileSdk 36
+              defaultConfig {
+                  applicationId 'com.fidgetracing.game'
+                  minSdk 24
+                  targetSdk 36
+                  versionCode 426
+                  versionName '425'
+              }
+          }
+          EOF
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application android:label="Fidget Racing" android:theme="@android:style/Theme.Material.NoActionBar" android:usesCleartextTraffic="true">
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+          cat > app/src/main/java/com/fidgetracing/game/MainActivity.java <<'EOF'
+          package com.fidgetracing.game;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.os.Build;
+          import android.view.WindowInsets;
+          import android.view.View;
+          import android.webkit.WebView;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          public class MainActivity extends Activity {
+              WebView web;
+              @Override public void onCreate(Bundle state) {
+                  super.onCreate(state);
+                  android.widget.FrameLayout root=new android.widget.FrameLayout(this);
+                  web=new WebView(this);
+                  root.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));
+                  setContentView(root);
+                  if (Build.VERSION.SDK_INT >= 30) {
+                      root.setOnApplyWindowInsetsListener((v, insets) -> {
+                          android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                          android.widget.FrameLayout.LayoutParams lp=(android.widget.FrameLayout.LayoutParams)web.getLayoutParams();
+                          lp.setMargins(bars.left,bars.top,bars.right,bars.bottom);
+                          web.setLayoutParams(lp);
+                          return insets;
+                      });
+                      root.requestApplyInsets();
+                  }
+                  WebSettings s=web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setAllowFileAccess(true);
+                  s.setUseWideViewPort(true);
+                  s.setLoadWithOverviewMode(true);
+                  s.setMediaPlaybackRequiresUserGesture(false);
+                  web.setWebViewClient(new WebViewClient());
+                  web.setWebChromeClient(new WebChromeClient());
+                  web.loadUrl("file:///android_asset/index.html");
+              }
+              @Override public void onBackPressed() {
+                  if(web.canGoBack()) web.goBack(); else super.onBackPressed();
+              }
+          }
+          EOF
+      - name: Install official cover artwork as launcher icon and opening splash
+        run: |
+          test -s fidget-racing-cover-1.jpg || { echo 'Official artwork not uploaded: fidget-racing-cover-1.jpg'; exit 1; }
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src=Image.open('fidget-racing-cover-1.jpg').convert('RGB')
+          root=Path('app/src/main')
+          assets=root/'assets'
+          assets.mkdir(parents=True,exist_ok=True)
+          src.save(assets/'fidget-racing-cover-1.jpg',quality=94)
+          for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              dest=root/'res'/('mipmap-'+density)
+              dest.mkdir(parents=True,exist_ok=True)
+              src.resize((size,size),Image.Resampling.LANCZOS).save(dest/'ic_launcher.png')
+          manifest=root/'AndroidManifest.xml'
+          txt=manifest.read_text().replace('<application android:label=', '<application android:icon="@mipmap/ic_launcher" android:label=')
+          manifest.write_text(txt)
+          java=root/'java/com/fidgetracing/game/MainActivity.java'
+          txt=java.read_text()
+          txt=txt.replace('web.loadUrl("file:///android_asset/index.html");', '''web.loadDataWithBaseURL("file:///android_asset/", "<html><head><meta name=\\"viewport\\" content=\\"width=device-width, initial-scale=1\\"></head><body style=\\"margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh\\"><img src=\\"fidget-racing-cover-1.jpg\\" style=\\"max-width:100%;max-height:100%;object-fit:contain\\"></body></html>", "text/html", "UTF-8", null);
+                  web.postDelayed(() -> web.loadUrl("file:///android_asset/index.html"), 2500);''')
+          java.write_text(txt)
+          PY
+      - name: Build debug APK and unsigned AAB
+        run: gradle --no-daemon :app:assembleDebug :app:bundleRelease
+      - name: Sign release AAB with existing Google Play upload key
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          test -n "$UPLOAD_KEYSTORE_BASE64" && test -n "$UPLOAD_KEYSTORE_PASSWORD" && test -n "$UPLOAD_KEY_ALIAS" && test -n "$UPLOAD_KEY_PASSWORD" || { echo 'Upload signing secrets are missing. Refusing to publish unsigned AAB.'; exit 1; }
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/upload-key.jks"
+          jarsigner -keystore "$RUNNER_TEMP/upload-key.jks" -storepass "$UPLOAD_KEYSTORE_PASSWORD" -keypass "$UPLOAD_KEY_PASSWORD" -signedjar app/build/outputs/bundle/release/app-release-signed.aab app/build/outputs/bundle/release/app-release.aab "$UPLOAD_KEY_ALIAS"
+          jarsigner -verify app/build/outputs/bundle/release/app-release-signed.aab
+          rm -f "$RUNNER_TEMP/upload-key.jks" app/build/outputs/bundle/release/app-release.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V425-FINAL-APK-AAB
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
