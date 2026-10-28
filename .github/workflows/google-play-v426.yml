@@ -124,10 +124,10 @@ jobs:
         run: gradle --no-daemon bundleRelease
       - name: Sign and verify Google Play AAB
         env:
-          KEYSTORE_BASE64: ${{ secrets.FIDGET_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.FIDGET_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.FIDGET_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.FIDGET_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           for key in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
