@@ -100,28 +100,34 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           root=Path('android-project/app/src/main')
-          activities=[]
-          for p in root.rglob('*.java'):
+          files=list(root.rglob('*.kt'))+list(root.rglob('*.java'))
+          print('Android source files:',[str(p) for p in files])
+          patched=[]
+          flags=('android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or '
+                 'android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or '
+                 'android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN')
+          for p in files:
               src=p.read_text()
-              if 'extends Activity' not in src and 'extends AppCompatActivity' not in src: continue
               if 'super.onCreate(' not in src: continue
-              import re
-              expr=r'(super\\.onCreate\\([^;]*\\);)'
-              insertion=('\\n        getWindow().getDecorView().setSystemUiVisibility('
-                         'android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | '
-                         'android.view.View.SYSTEM_UI_FLAG_FULLSCREEN | '
-                         'android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | '
-                         'android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | '
-                         'android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | '
-                         'android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);')
-              if 'SYSTEM_UI_FLAG_IMMERSIVE_STICKY' not in src:
-                  src,n=re.subn(expr,lambda m:m.group(1)+insertion,src,count=1)
-                  if not n: continue
+              if 'SYSTEM_UI_FLAG_IMMERSIVE_STICKY' in src: patched.append(str(p));continue
+              if p.suffix=='.kt':
+                  line='window.decorView.systemUiVisibility = ('+flags+')'
+                  pattern=r'super\\.onCreate\\([^)]*\\)'
+              else:
+                  line='getWindow().getDecorView().setSystemUiVisibility('+flags.replace(' or ',' | ')+');'
+                  pattern=r'super\\.onCreate\\([^)]*\\);'
+              src,n=re.subn(pattern,lambda m:m.group(0)+'\\n        '+line,src,count=1)
+              if n:
                   p.write_text(src)
-              activities.append(str(p))
-          if not activities: raise SystemExit('Android Activity not found')
-          print('Immersive landscape enabled:',activities)
+                  patched.append(str(p))
+          if not patched:
+              raise SystemExit('Could not locate Android onCreate in Java or Kotlin: '+str([str(p) for p in files]))
+          print('Updated Android fullscreen Activity:',patched)
           PY
       - name: Install approved Fidget Racing cover as app icon
         run: |
