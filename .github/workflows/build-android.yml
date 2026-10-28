@@ -53,11 +53,13 @@ jobs:
           import re
           p=Path('android-project/app/src/main/assets/index.html')
           html=p.read_text()
-          # Android WebView: use a wide layout viewport so the entire game
-          # scales to the available landscape width instead of clipping.
-          html,n=re.subn(r'(<meta\\s+content=")width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover("\\s+name="viewport"\\s*/>)',r'\\g<1>width=1200,viewport-fit=cover\\2',html,count=1)
-          if n!=1: raise SystemExit('Expected viewport meta tag not found')
+          viewport='<meta name="viewport" content="width=1200, initial-scale=1, viewport-fit=cover">'
+          html,n=re.subn(r'<meta\\b(?=[^>]*\\bname\\s*=\\s*["\\\']viewport["\\\'])[^>]*>',viewport,html,count=1,flags=re.I)
+          if not n:
+              html,n=re.subn(r'<head\\b[^>]*>',lambda m:m.group(0)+'\\n'+viewport,html,count=1,flags=re.I)
+          if not n: raise SystemExit('HTML head missing; cannot insert viewport')
           p.write_text(html)
+          print('V426 viewport configured')
           PY
       - name: Install approved Fidget Racing cover as app icon
         run: |
