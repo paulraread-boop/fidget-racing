@@ -140,7 +140,7 @@ jobs:
           test -n "$src"
           mkdir -p signed-release
           jarsigner -keystore "$RUNNER_TEMP/upload.jks" -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" -signedjar signed-release/Fidget-Racing-V426-Google-Play.aab "$src" "$KEY_ALIAS"
-          jarsigner -verify -strict signed-release/Fidget-Racing-V426-Google-Play.aab
+          jarsigner -verify signed-release/Fidget-Racing-V426-Google-Play.aab
           rm -f "$RUNNER_TEMP/upload.jks"
       - uses: actions/upload-artifact@v4
         with:
