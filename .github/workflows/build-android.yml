@@ -114,7 +114,7 @@ jobs:
           if 'SYSTEM_UI_FLAG_IMMERSIVE_STICKY' not in s:
               needle='setContentView('
               if needle not in s: raise SystemExit('setContentView not found')
-              s=s.replace(needle,'getWindow().getDecorView().setSystemUiVisibility('+flags+');\\n        '+needle,1)
+              s=s.replace(needle,'getWindow().getDecorView().setSystemUiVisibility('+flags+');'+chr(10)+'        '+needle,1)
               p.write_text(s)
           print('Android immersive landscape configured')
           PY
