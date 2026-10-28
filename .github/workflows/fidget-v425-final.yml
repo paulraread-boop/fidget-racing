@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/fidget-v393-android.yml'
       - 'fidget-racing-cover-1.jpg'
-      - 'Fidget_Racing_V425_Song_Switch_No_Rebuild_Source.zip'
+      - 'Fidget_Racing_V425_Source_Part_*_of_3.bin'
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -31,9 +31,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import zipfile,hashlib,sys
-          p=Path('Fidget_Racing_V425_Song_Switch_No_Rebuild_Source.zip')
-          if not p.exists(): sys.exit('Upload the exact V425 source ZIP to the repository root first.')
-          with zipfile.ZipFile(p) as z:
+          parts=[Path(f'Fidget_Racing_V425_Source_Part_{i}_of_3.bin') for i in (1,2,3)]
+          if not all(p.exists() for p in parts): sys.exit('Upload all three V425 source parts to the repository root first.')
+          combined=b''.join(p.read_bytes() for p in parts)
+          expected='5325d092e15b626918ee8c0b2f35178bcf04d8dba33b4f2c676fefefc1d73d1a'
+          if hashlib.sha256(combined).hexdigest()!=expected: sys.exit('V425 source parts do not match the locked master ZIP.')
+          from io import BytesIO
+          with zipfile.ZipFile(BytesIO(combined)) as z:
               names=[n for n in z.namelist() if n.lower().endswith('.html') and not n.endswith('/')]
               if len(names)!=1: sys.exit('V425 ZIP must contain exactly one HTML file')
               raw=z.read(names[0])
