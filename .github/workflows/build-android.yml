@@ -77,6 +77,25 @@ jobs:
           p.write_text(html)
           print('Restored auto-fit from October 26 approved build')
           PY
+      - name: Restore working Android WebView settings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files=list(Path('android-project/app/src/main').rglob('*.java'))
+          changed=0
+          for p in files:
+              s=p.read_text()
+              if 'getSettings()' not in s: continue
+              if 'setUseWideViewPort(true)' not in s:
+                  import re
+                  s,n=re.subn(r'(\\w+\\.setJavaScriptEnabled\\(true\\);)',r'\\1\\n                  s.setUseWideViewPort(true);\\n                  s.setLoadWithOverviewMode(true);',s,count=1)
+                  if n==0:
+                      s=s.replace('web.loadUrl(', 'web.getSettings().setUseWideViewPort(true); web.getSettings().setLoadWithOverviewMode(true); web.loadUrl(',1)
+              p.write_text(s)
+              changed+=1
+          if not changed: raise SystemExit('No Android WebView activity found')
+          print('WebView settings restored in',changed,'file(s)')
+          PY
       - name: Install approved Fidget Racing cover as app icon
         run: |
           python3 -m pip install --quiet Pillow
