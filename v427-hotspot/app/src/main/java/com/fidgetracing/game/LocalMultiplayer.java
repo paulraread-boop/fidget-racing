@@ -1,0 +1,23 @@
+package com.fidgetracing.game;
+import android.app.Activity;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import org.json.JSONObject;
+import java.io.*;
+import java.net.*;
+import java.util.concurrent.*;
+public final class LocalMultiplayer {
+ final Activity activity; final WebView web; final ExecutorService pool=Executors.newCachedThreadPool();
+ volatile ServerSocket server; volatile Socket client; volatile PrintWriter writer; volatile boolean hosting=false,running=true;
+ final ConcurrentHashMap<Integer,PrintWriter> guests=new ConcurrentHashMap<>();
+ final java.util.Set<Integer> slots=ConcurrentHashMap.newKeySet();
+ LocalMultiplayer(Activity a,WebView w){activity=a;web=w;}
+ void event(String type,String message){try{JSONObject j=new JSONObject();j.put("type",type);j.put("message",message);String js="window.dispatchEvent(new CustomEvent('fidget-local-multiplayer',{detail:"+j.toString()+"}));";activity.runOnUiThread(()->web.evaluateJavascript(js,null));if(activity instanceof MainActivity){MainActivity m=(MainActivity)activity;if(m.nativeRace!=null)m.nativeRace.onTransport(type,message);}}catch(Exception ignored){}}
+ int slot(){for(int i=10;i<=14;i++)if(slots.add(i))return i;event("error","Room full: six players maximum");return -1;}
+ void link(Socket s,int id)throws IOException{PrintWriter out=new PrintWriter(new OutputStreamWriter(s.getOutputStream(),"UTF-8"),true);if(hosting){guests.put(id,out);event("joined",Integer.toString(id));}else{writer=out;event("connected","Connected to host");}try(BufferedReader in=new BufferedReader(new InputStreamReader(s.getInputStream(),"UTF-8"))){String line;while(running&&(line=in.readLine())!=null){if(line.length()>65536)break;if(hosting){try{JSONObject j=new JSONObject(line);j.put("slot",id);line=j.toString();}catch(Exception ignored){}for(java.util.Map.Entry<Integer,PrintWriter> g:guests.entrySet())if(g.getKey()!=id)g.getValue().println(line);}event("message",line);}}finally{if(hosting){guests.remove(id);slots.remove(id);event("left",Integer.toString(id));}else{writer=null;event("disconnected","Host disconnected");}}}
+ @JavascriptInterface public void hostWifi(int port){pool.execute(()->{try{if(port<1024||port>65535)throw new IOException("Invalid port");hosting=true;slots.clear();server=new ServerSocket(port);event("hosting","Wi-Fi port "+port);while(running&&!server.isClosed()){Socket s=server.accept();int id=slot();if(id<0){s.close();continue;}pool.execute(()->{try(Socket sock=s){link(sock,id);}catch(Exception e){event("error",e.toString());}});}}catch(Exception e){if(running)event("error",e.toString());}});}
+ @JavascriptInterface public void joinWifi(String address,int port){pool.execute(()->{try{if(port<1024||port>65535)throw new IOException("Invalid port");hosting=false;client=new Socket();client.connect(new InetSocketAddress(address,port),8000);link(client,0);}catch(Exception e){event("error",e.toString());}});}
+ @JavascriptInterface public void send(String data){if(data==null||data.length()>65536)return;if(hosting){for(PrintWriter w:guests.values())w.println(data);}else if(writer!=null)writer.println(data);}
+ @JavascriptInterface public void stop(){close();}
+ public void close(){running=false;try{if(server!=null)server.close();}catch(Exception ignored){}try{if(client!=null)client.close();}catch(Exception ignored){}for(PrintWriter w:guests.values())w.close();guests.clear();pool.shutdownNow();}
+}
