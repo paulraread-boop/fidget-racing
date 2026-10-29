@@ -137,7 +137,7 @@ jobs:
           insertion='localMultiplayer=new LocalMultiplayer(this,web);web.addJavascriptInterface(localMultiplayer,"FidgetMultiplayer");nativeRace=new NativeRaceBridge(this,web,localMultiplayer);web.addJavascriptInterface(nativeRace,"NativeRace");'
           s=s.replace('web.loadUrl(',insertion+'web.loadUrl(',1)
           i=s.index('{',s.index('public class MainActivity'))
-          s=s[:i+1]+' private LocalMultiplayer localMultiplayer; private NativeRaceBridge nativeRace; '+s[i+1:]
+          s=s[:i+1]+' LocalMultiplayer localMultiplayer; NativeRaceBridge nativeRace; '+s[i+1:]
           p.write_text(s)
           PY
           python3 - <<'PY'
