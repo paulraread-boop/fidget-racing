@@ -132,3 +132,15 @@ jobs:
           path: android-project/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Package preserved V426 source ZIP
+        run: |
+          set -euo pipefail
+          test -s android-project/app/src/main/assets/index.html
+          cd android-project
+          zip -qr ../Fidget-Racing-V426-Complete-Android-Source.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V426-Complete-Source-ZIP
+          path: Fidget-Racing-V426-Complete-Android-Source.zip
+          if-no-files-found: error
+          retention-days: 30
