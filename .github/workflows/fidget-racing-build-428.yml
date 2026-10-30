@@ -1,0 +1,36 @@
+name: Fidget Racing Build 428 (Android)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-build-428:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Android source
+        uses: actions/checkout@v4
+      - name: Verify Android project
+        shell: bash
+        run: |
+          test -f gradlew || { echo "::error::Android Gradle source project missing. An APK alone cannot be rebuilt as a signed release."; exit 1; }
+          test -d app || { echo "::error::Android app module missing."; exit 1; }
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Build Android debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug
+      - name: Upload Build 428 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-B428-debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
