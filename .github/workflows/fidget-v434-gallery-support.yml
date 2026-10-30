@@ -1,0 +1,28 @@
+name: Fidget Racing V434 Gallery Support Chrome ZIP
+on:
+  workflow_dispatch:
+  push:
+    branches: [v427-hotspot-build]
+    paths:
+      - 'maintenance/v434_gallery_support.py'
+      - '.github/workflows/fidget-v434-gallery-support.yml'
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract pre-multiplayer V426 game
+        run: |
+          mkdir -p work433
+          unzip -oq V426_Part_1_Game_HTML.zip -d work433
+          find work433 -type f | head -20
+      - name: Remove gallery and repair support layout
+        run: python3 maintenance/v434_gallery_support.py
+      - name: Upload Chrome and ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V434-Chrome-And-ZIP
+          path: |
+            Fidget_Racing_V434_Gallery_Support_Chrome.html
+            Fidget_Racing_V434_Gallery_Support_Source.zip
+          retention-days: 30
