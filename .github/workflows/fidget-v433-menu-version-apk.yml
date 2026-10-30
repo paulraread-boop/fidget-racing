@@ -1,0 +1,170 @@
+name: Fidget Racing V433 Menu Version APK
+# Approved faster-AI build; yellow #14 icon from embedded artwork
+on:
+  push:
+    branches: [v427-hotspot-build]
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Unpack approved project
+        run: |
+          mkdir -p android-project
+          unzip -q 'FIDGET_RACING_EXIT_FIXED_SOURCE.zip' -d android-project
+      - name: Install approved V428 multiplayer game
+        run: |
+          mkdir -p android-project/app/src/main/assets
+          unzip -oq Fidget_Racing_V428_Multiplayer_Buttons_Source.zip -d android-project/app/src/main/assets
+          test -s android-project/app/src/main/assets/index.html
+          grep -qi 'qualifying' android-project/app/src/main/assets/index.html
+          echo "V428 multiplayer source installed"
+      - name: Restore previously working landscape auto-fit
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-project/app/src/main/assets/index.html')
+          html=p.read_text()
+          script="""<script>
+          (function () {
+            function fitGame() {
+              var b = document.body;
+              if (!b) return;
+              b.style.zoom = '1';
+              var vw = document.documentElement.clientWidth;
+              var vh = document.documentElement.clientHeight;
+              var w = Math.max(b.scrollWidth, document.documentElement.scrollWidth);
+              var h = Math.max(b.scrollHeight, document.documentElement.scrollHeight);
+              var scale = Math.min(1, vw / Math.max(1, w), vh / Math.max(1, h));
+              b.style.zoom = String(Math.max(0.4, scale));
+            }
+            window.addEventListener('load', fitGame);
+            window.addEventListener('resize', fitGame);
+            window.addEventListener('orientationchange', fitGame);
+            document.addEventListener('DOMContentLoaded', fitGame);
+          })();
+          </script>"""
+          if '</body>' in html: html=html.replace('</body>',script+'</body>',1)
+          elif '</BODY>' in html: html=html.replace('</BODY>',script+'</BODY>',1)
+          else: raise SystemExit('Cannot find closing body tag for known-good fit script')
+          p.write_text(html)
+          print('Restored auto-fit from October 26 approved build')
+          PY
+      - name: Restore working Android WebView settings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files=list(Path('android-project/app/src/main').rglob('*.java'))
+          changed=0
+          for p in files:
+              s=p.read_text()
+              if 'getSettings()' not in s: continue
+              if 'setUseWideViewPort(true)' not in s:
+                  import re
+                  s,n=re.subn(r'(\\w+\\.setJavaScriptEnabled\\(true\\);)',r'\\1\\n                  s.setUseWideViewPort(true);\\n                  s.setLoadWithOverviewMode(true);',s,count=1)
+                  if n==0:
+                      s=s.replace('web.loadUrl(', 'web.getSettings().setUseWideViewPort(true); web.getSettings().setLoadWithOverviewMode(true); web.loadUrl(',1)
+              p.write_text(s)
+              changed+=1
+          if not changed: raise SystemExit('No Android WebView activity found')
+          print('WebView settings restored in',changed,'file(s)')
+          PY
+      - name: Keep Android system bars outside gameplay
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('android-project/app/src/main')
+          p=root/'java/com/fidgetracing/game/MainActivity.java'
+          if not p.exists(): raise SystemExit('MainActivity.java missing')
+          s=p.read_text()
+          print('MainActivity excerpt:',s[:2500])
+          flags=('android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | '
+                 'android.view.View.SYSTEM_UI_FLAG_FULLSCREEN | '
+                 'android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | '
+                 'android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN')
+          if 'SYSTEM_UI_FLAG_IMMERSIVE_STICKY' not in s:
+              needle='setContentView('
+              if needle not in s: raise SystemExit('setContentView not found')
+              s=s.replace(needle,'getWindow().getDecorView().setSystemUiVisibility('+flags+');'+chr(10)+'        '+needle,1)
+              p.write_text(s)
+          print('Android immersive landscape configured')
+          PY
+      - name: Install approved Fidget Racing cover as app icon
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          source=Path('fidget-racing-cover-1.jpg')
+          if not source.is_file(): raise SystemExit('Approved app icon missing')
+          im=Image.open(source).convert('RGB')
+          for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              out=Path('android-project/app/src/main/res')/('mipmap-'+density)
+              out.mkdir(parents=True,exist_ok=True)
+              im.resize((size,size)).save(out/'ic_launcher.png')
+          manifest=Path('android-project/app/src/main/AndroidManifest.xml')
+          content=manifest.read_text()
+          if 'android:icon=' not in content:
+              content=content.replace('<application','<application android:icon="@mipmap/ic_launcher"',1)
+              manifest.write_text(content)
+          PY
+      - name: Add V427 networking while preserving V426 activity and artwork
+        run: |
+          set -euo pipefail
+          src=v427-hotspot/app/src/main/java/com/fidgetracing/game
+          dst=android-project/app/src/main/java/com/fidgetracing/game
+          test -s "$dst/MainActivity.java"
+          cp "$src/LocalMultiplayer.java" "$dst/LocalMultiplayer.java"
+          cp "$src/NativeRaceBridge.java" "$dst/NativeRaceBridge.java"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-project/app/src/main/java/com/fidgetracing/game/MainActivity.java')
+          s=p.read_text()
+          if 'new LocalMultiplayer(' in s or 'web.loadUrl(' not in s: raise SystemExit('Unknown activity layout; refusing unsafe edit')
+          insertion='localMultiplayer=new LocalMultiplayer(this,web);web.addJavascriptInterface(localMultiplayer,"FidgetMultiplayer");nativeRace=new NativeRaceBridge(this,web,localMultiplayer);web.addJavascriptInterface(nativeRace,"NativeRace");'
+          s=s.replace('web.loadUrl(',insertion+'web.loadUrl(',1)
+          i=s.index('{',s.index('public class MainActivity'))
+          s=s[:i+1]+' LocalMultiplayer localMultiplayer; NativeRaceBridge nativeRace; '+s[i+1:]
+          p.write_text(s)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-project/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          if 'android.permission.INTERNET' not in s:s=s.replace('<application','<uses-permission android:name="android.permission.INTERNET"/><application',1)
+          if 'android:usesCleartextTraffic=' not in s:s=s.replace('<application','<application android:usesCleartextTraffic="true"',1)
+          p.write_text(s)
+          PY
+      - name: Verify V428 Android networking source
+        run: test -s android-project/app/src/main/java/com/fidgetracing/game/LocalMultiplayer.java
+      - name: Enable automatic nearby race discovery
+        run: python3 v427-hotspot/patch_v429_discovery.py
+      - name: Improve multiplayer connection stability
+        run: python3 v427-hotspot/patch_v430_stability.py
+      - name: Repair host race controls and show build number
+        run: python3 v427-hotspot/patch_v431_controls.py
+      - name: Fix Start Race and optional qualifying
+        run: python3 v427-hotspot/patch_v432_start_qualifying.py
+      - name: Restore menu visibility and mark Build 433
+        run: python3 v427-hotspot/patch_v433_menu_version.py
+      - name: Build Android test APK
+        working-directory: android-project
+        run: gradle --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V433-Menu-Version-APK
+          path: android-project/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
