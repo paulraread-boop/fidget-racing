@@ -1,0 +1,28 @@
+name: Fidget V435 Source Inspection
+on:
+  push:
+    branches: [v427-hotspot-build]
+    paths: ['maintenance/v435_inspect.yml']
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect gallery and support markup in original V426
+        run: |
+          mkdir -p source-inspection
+          unzip -oq V426_Part_1_Game_HTML.zip -d source-inspection
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          files=list(Path('source-inspection').rglob('*.html'))
+          for f in files:
+            s=f.read_text(errors='replace')
+            print('FILE',f,'SIZE',len(s))
+            for term in ['WATCH 20 CONCEPT CARS','CONCEPT CARS','Player Support','Reports are saved only','gallery','support']:
+              matches=list(re.finditer(re.escape(term),s,re.I))
+              print('TERM',repr(term),'COUNT',len(matches))
+              for m in matches[:4]:
+                print('CONTEXT',repr(s[max(0,m.start()-280):m.end()+280]))
+          PY
