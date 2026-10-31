@@ -1,0 +1,35 @@
+name: Fidget Racing V426 Android APK and Source ZIP
+on:
+  workflow_dispatch:
+  push:
+    branches: [v426-updated]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Verify Android project
+        run: |
+          test -f settings.gradle
+          test -f app/build.gradle
+          test -f app/src/main/assets/index.html
+      - name: Build debug APK
+        run: |
+          if [ -f gradlew ]; then chmod +x gradlew; ./gradlew --no-daemon assembleDebug; else gradle --no-daemon assembleDebug; fi
+      - name: Bundle matching source
+        run: zip -qr Fidget-Racing-V426-Source.zip . -x '.git/*' '**/build/*' '.gradle/*'
+      - name: Upload APK and source together
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V426-APK-and-Source
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            Fidget-Racing-V426-Source.zip
+          if-no-files-found: error
