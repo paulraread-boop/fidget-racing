@@ -26,6 +26,38 @@ jobs:
           test -s app/src/main/assets/index.html
           grep -qi 'html' app/src/main/assets/index.html
           sed -i "s/versionCode 435; versionName '435'/versionCode 436; versionName 'B431'/" app/build.gradle
+      - name: Create missing Android launcher icon
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw, ImageFont
+          from pathlib import Path
+          import io, zipfile, re, base64
+          game = Path('app/src/main/assets/index.html').read_text(errors='replace')
+          image = None
+          for pattern in [r'data:image/(?:jpeg|png);base64,([A-Za-z0-9+/=]+)']:
+              for m in re.finditer(pattern, game):
+                  try:
+                      candidate = Image.open(io.BytesIO(base64.b64decode(m.group(1)))).convert('RGB')
+                      if candidate.width >= 128 and candidate.height >= 128:
+                          image = candidate
+                          break
+                  except Exception:
+                      pass
+              if image: break
+          if image is None:
+              image = Image.new('RGB',(512,512),'#151820')
+              draw=ImageDraw.Draw(image)
+              draw.ellipse((60,110,450,410),fill='#f3c21b',outline='#f25d28',width=14)
+              draw.text((185,205),'14',fill='black',font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',110))
+          side=min(image.size)
+          x=(image.width-side)//2; y=(image.height-side)//2
+          image=image.crop((x,y,x+side,y+side))
+          for density,size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
+              dest=Path('app/src/main/res/mipmap-'+density)
+              dest.mkdir(parents=True,exist_ok=True)
+              image.resize((size,size),Image.Resampling.LANCZOS).save(dest/'ic_launcher.png')
+          PY
       - name: Build B431 APK
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
