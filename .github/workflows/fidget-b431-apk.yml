@@ -1,0 +1,36 @@
+name: Fidget Racing B431 APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fidget-b431-apk.yml'
+      - 'Fidget_Racing_B431_Game_Source-1.zip'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install B431 game from uploaded ZIP
+        run: |
+          set -e
+          unzip -p Fidget_Racing_B431_Game_Source-1.zip index.html > app/src/main/assets/index.html
+          test -s app/src/main/assets/index.html
+          grep -qi 'html' app/src/main/assets/index.html
+          sed -i "s/versionCode 435; versionName '435'/versionCode 436; versionName 'B431'/" app/build.gradle
+      - name: Build B431 APK
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-B431-APK
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
