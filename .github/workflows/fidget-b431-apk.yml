@@ -1,4 +1,4 @@
-name: Fidget Racing B435 APK
+name: Fidget Racing B436 APK
 on:
   workflow_dispatch:
   push:
@@ -26,8 +26,8 @@ jobs:
           unzip -p Fidget_Racing_B431_Game_Source-1.zip index.html > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           grep -qi 'html' app/src/main/assets/index.html
-          sed -i "s/versionCode 435; versionName '435'/versionCode 440; versionName 'B435'/" app/build.gradle
-      - name: Apply B435 layout-only repair
+          sed -i "s/versionCode 435; versionName '435'/versionCode 441; versionName 'B436'/" app/build.gradle
+      - name: Apply B436 layout-only repair
         run: python3 b432_layout_fix.py
       - name: Create missing Android launcher icon
         run: |
@@ -61,11 +61,43 @@ jobs:
               dest.mkdir(parents=True,exist_ok=True)
               image.resize((size,size),Image.Resampling.LANCZOS).save(dest/'ic_launcher.png')
           PY
-      - name: Build B431 APK
+      - name: Build B436 APK
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-B435-APK
+          name: Fidget-Racing-B436-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Package complete game source and APK
+        run: |
+          set -e
+          mkdir -p final-backup
+          cp app/build/outputs/apk/debug/*.apk final-backup/Fidget-Racing-B436-debug.apk
+          cat > final-backup/README-START-HERE.txt <<'EOF'
+          FIDGET RACING - B436 FINAL NIGHT BACKUP
+          This ZIP contains the complete Android project source, the installed game
+          HTML and assets, GitHub Actions workflows, and the compiled debug APK.
+          Keep this ZIP safe and upload it tomorrow to continue without rebuilding
+          the source from scratch.
+          APK: Fidget-Racing-B436-debug.apk
+          Music: original audio retained; requested Liquid Flame copy not yet applied.
+          To rebuild: gradle :app:assembleDebug (Java 17, Android SDK required).
+          EOF
+          zip -q -r final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip . -x '.git/*' '.gradle/*' '*/build/*' 'final-backup/*' '*.apk'
+          unzip -tqq final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip
+          unzip -l final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip | grep -q 'app/src/main/assets/index.html'
+          unzip -l final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip | grep -q 'app/build.gradle'
+          cp final-backup/Fidget-Racing-B436-debug.apk final-backup/game.apk
+          cd final-backup
+          zip -q -u Fidget-Racing-B436-COMPLETE-PROJECT.zip game.apk
+          rm game.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-B436-COMPLETE-PROJECT-ZIP
+          path: |
+            final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip
+            final-backup/README-START-HERE.txt
+          if-no-files-found: error
+          retention-days: 90
