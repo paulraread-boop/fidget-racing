@@ -1,0 +1,29 @@
+name: Fidget Racing V429 Android APK and AAB
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Android project files
+        run: |
+          test -f settings.gradle
+          test -f app/build.gradle
+          test -f app/src/main/assets/index.html
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Compile APK and unsigned AAB
+        run: gradle :app:assembleDebug :app:bundleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fidget-Racing-V429-APK-AAB
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
