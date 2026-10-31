@@ -1,4 +1,4 @@
-name: Fidget Racing B436 APK
+name: Fidget Racing B437 APK
 on:
   workflow_dispatch:
   push:
@@ -26,8 +26,24 @@ jobs:
           unzip -p Fidget_Racing_B431_Game_Source-1.zip index.html > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           grep -qi 'html' app/src/main/assets/index.html
-          sed -i "s/versionCode 435; versionName '435'/versionCode 441; versionName 'B436'/" app/build.gradle
-      - name: Apply B436 layout-only repair
+          sed -i "s/versionCode 435; versionName '435'/versionCode 442; versionName 'B437'/" app/build.gradle
+      - name: Inspect full source and preserve Showroom
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          current=Path('app/src/main/assets/index.html').read_text(errors='replace')
+          for word in ['showroom','garage','gallery','concept','pick your field']:
+              print('CURRENT',word,current.lower().count(word))
+          for name in ['Fidget-Racing-V429-Part-1.zip','Fidget-Racing-V429-Part-2.zip','Fidget-Racing-V429-Part-3.zip','FIDGET_RACING_APPROVED_ANDROID_SOURCE-1.zip','Fidget_Racing_Build_430_Source-3.zip']:
+              with zipfile.ZipFile(name) as z:
+                  print('ARCHIVE',name,[(i.filename,i.file_size) for i in z.infolist()[:15]])
+                  for i in z.infolist():
+                      if i.filename.lower().endswith(('.html','.js')) and i.file_size<50000000:
+                          data=z.read(i).decode('utf-8','replace').lower()
+                          print('SOURCE',name,i.filename,'showroom',data.count('showroom'),'gallery',data.count('gallery'),'concept',data.count('concept'))
+          PY
+      - name: Apply B437 layout-only repair
         run: python3 b432_layout_fix.py
       - name: Create missing Android launcher icon
         run: |
@@ -61,11 +77,11 @@ jobs:
               dest.mkdir(parents=True,exist_ok=True)
               image.resize((size,size),Image.Resampling.LANCZOS).save(dest/'ic_launcher.png')
           PY
-      - name: Build B436 APK
+      - name: Build B437 APK
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-B436-APK
+          name: Fidget-Racing-B437-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -74,30 +90,30 @@ jobs:
         run: |
           set -e
           mkdir -p final-backup
-          cp app/build/outputs/apk/debug/*.apk final-backup/Fidget-Racing-B436-debug.apk
+          cp app/build/outputs/apk/debug/*.apk final-backup/Fidget-Racing-B437-debug.apk
           cat > final-backup/README-START-HERE.txt <<'EOF'
-          FIDGET RACING - B436 FINAL NIGHT BACKUP
+          FIDGET RACING - B437 FINAL NIGHT BACKUP
           This ZIP contains the complete Android project source, the installed game
           HTML and assets, GitHub Actions workflows, and the compiled debug APK.
           Keep this ZIP safe and upload it tomorrow to continue without rebuilding
           the source from scratch.
-          APK: Fidget-Racing-B436-debug.apk
+          APK: Fidget-Racing-B437-debug.apk
           Music: original audio retained; requested Liquid Flame copy not yet applied.
           To rebuild: gradle :app:assembleDebug (Java 17, Android SDK required).
           EOF
-          zip -q -r final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip . -x '.git/*' '.gradle/*' '*/build/*' 'final-backup/*' '*.apk'
-          unzip -tqq final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip
-          unzip -l final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip | grep -q 'app/src/main/assets/index.html'
-          unzip -l final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip | grep -q 'app/build.gradle'
-          cp final-backup/Fidget-Racing-B436-debug.apk final-backup/game.apk
+          zip -q -r final-backup/Fidget-Racing-B437-COMPLETE-PROJECT.zip . -x '.git/*' '.gradle/*' '*/build/*' 'final-backup/*' '*.apk'
+          unzip -tqq final-backup/Fidget-Racing-B437-COMPLETE-PROJECT.zip
+          unzip -l final-backup/Fidget-Racing-B437-COMPLETE-PROJECT.zip | grep -q 'app/src/main/assets/index.html'
+          unzip -l final-backup/Fidget-Racing-B437-COMPLETE-PROJECT.zip | grep -q 'app/build.gradle'
+          cp final-backup/Fidget-Racing-B437-debug.apk final-backup/game.apk
           cd final-backup
-          zip -q -u Fidget-Racing-B436-COMPLETE-PROJECT.zip game.apk
+          zip -q -u Fidget-Racing-B437-COMPLETE-PROJECT.zip game.apk
           rm game.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-B436-COMPLETE-PROJECT-ZIP
+          name: Fidget-Racing-B437-COMPLETE-PROJECT-ZIP
           path: |
-            final-backup/Fidget-Racing-B436-COMPLETE-PROJECT.zip
+            final-backup/Fidget-Racing-B437-COMPLETE-PROJECT.zip
             final-backup/README-START-HERE.txt
           if-no-files-found: error
           retention-days: 90
