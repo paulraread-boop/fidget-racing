@@ -54,36 +54,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>"""
 s=s.replace('</body>',toolbar+'</body>',1)
-# Reuse the embedded Liquid Flame recording (music library index 3) for Cinematic Pulse.
-# The race music library and its rental logic remain unchanged.
-pulse_start=s.index("const menu=document.getElementById('gameMenuItems')")
-pulse_end=s.index("</script>",pulse_start)
-pulse=s[pulse_start:pulse_end]
-assert "function start(kind)" in pulse and "function stop()" in pulse, "Pulse music functions not found"
-old_start=pulse[pulse.index("function start(kind)"):pulse.index("function stop()")]
-new_start="""let liquidPulseAudio=null,liquidPulseUrl=null;
-function start(kind){
- if(!cfg.on||(kind==='gallery'&&!cfg.gallery))return;
- const raw=window.FIDGET_OFFLINE_TRACKS&&window.FIDGET_OFFLINE_TRACKS[3];
- if(!raw){console.warn('Liquid Flame recording unavailable');return}
- if(!liquidPulseAudio){
-  const bytes=[];for(let n=0;n<raw.length;n+=32768){
-   const part=atob(raw.slice(n,n+32768)),arr=new Uint8Array(part.length);
-   for(let j=0;j<part.length;j++)arr[j]=part.charCodeAt(j);
-   bytes.push(arr);
-  }
-  liquidPulseUrl=URL.createObjectURL(new Blob(bytes,{type:'audio/mpeg'}));
-  liquidPulseAudio=new Audio(liquidPulseUrl);liquidPulseAudio.loop=true;
- }
- mode=kind;liquidPulseAudio.volume=cfg.volume/100;
- liquidPulseAudio.play().catch(e=>console.warn('Liquid Flame preview:',e));
- playing=true;now.style.display='block';quick.textContent='♫ MUSIC ON';preview.textContent='■ STOP PREVIEW';
-}
-"""
-pulse=pulse.replace(old_start,new_start,1)
-pulse=pulse.replace("function stop(){playing=false;clearInterval(timer);", "function stop(){if(liquidPulseAudio){liquidPulseAudio.pause();liquidPulseAudio.currentTime=0;}playing=false;clearInterval(timer);",1)
-pulse=pulse.replace("if(master&&ctx)master.gain.setTargetAtTime(cfg.volume/100,ctx.currentTime,.08)","if(liquidPulseAudio)liquidPulseAudio.volume=cfg.volume/100",1)
-pulse=pulse.replace("if(!ctx)return;if(document.hidden)ctx.suspend();else if(playing)ctx.resume()","if(!liquidPulseAudio)return;if(document.hidden)liquidPulseAudio.pause();else if(playing)liquidPulseAudio.play().catch(()=>{})",1)
-s=s[:pulse_start]+pulse+s[pulse_end:]
+# Original audio preserved; unsupported music patch removed.
 p.write_text(s,encoding="utf-8")
 print("B433 fixed header and close layout applied")
