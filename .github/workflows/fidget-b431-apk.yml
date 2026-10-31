@@ -1,4 +1,4 @@
-name: Fidget Racing B434 APK
+name: Fidget Racing B435 APK
 on:
   workflow_dispatch:
   push:
@@ -26,8 +26,8 @@ jobs:
           unzip -p Fidget_Racing_B431_Game_Source-1.zip index.html > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           grep -qi 'html' app/src/main/assets/index.html
-          sed -i "s/versionCode 435; versionName '435'/versionCode 439; versionName 'B434'/" app/build.gradle
-      - name: Apply B434 layout-only repair
+          sed -i "s/versionCode 435; versionName '435'/versionCode 440; versionName 'B435'/" app/build.gradle
+      - name: Apply B435 layout-only repair
         run: python3 b432_layout_fix.py
       - name: Create missing Android launcher icon
         run: |
@@ -65,7 +65,7 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-B434-APK
+          name: Fidget-Racing-B435-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
