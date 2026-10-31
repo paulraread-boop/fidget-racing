@@ -1,10 +1,11 @@
-name: Fidget Racing B431 APK
+name: Fidget Racing B432 APK
 on:
   workflow_dispatch:
   push:
     paths:
       - '.github/workflows/fidget-b431-apk.yml'
       - 'Fidget_Racing_B431_Game_Source-1.zip'
+      - 'b432_layout_fix.py'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,7 +26,9 @@ jobs:
           unzip -p Fidget_Racing_B431_Game_Source-1.zip index.html > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           grep -qi 'html' app/src/main/assets/index.html
-          sed -i "s/versionCode 435; versionName '435'/versionCode 436; versionName 'B431'/" app/build.gradle
+          sed -i "s/versionCode 435; versionName '435'/versionCode 437; versionName 'B432'/" app/build.gradle
+      - name: Apply B432 layout-only repair
+        run: python3 b432_layout_fix.py
       - name: Create missing Android launcher icon
         run: |
           python3 -m pip install --quiet Pillow
@@ -62,7 +65,7 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Fidget-Racing-B431-APK
+          name: Fidget-Racing-B432-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
